@@ -1,0 +1,1019 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#B8622B"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Drip Dose"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Drip Dose</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F3F1EC;
+    --bg-2: #FFFFFF;
+    --bg-3: #E9E5DE;
+    --line: #DCD6CC;
+    --ink: #1C1917;
+    --ink-2: #57504A;
+    --ink-3: #8A8178;
+    --copper: #B8622B;
+    --copper-2: #F1DCC9;
+    --copper-ink: #FFFFFF;
+    --water: #2F6F9F;
+    --water-2: #DCE9F3;
+    --bean: #5A3E2B;
+    --bean-2: #E6D9CC;
+    --good: #2E7D4F;
+    --shadow: 0 1px 2px rgba(28,25,23,.06), 0 8px 24px rgba(28,25,23,.08);
+    --radius: 14px;
+    --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Manrope", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171412; --bg-2: #221E1B; --bg-3: #2C2723; --line: #3A332E;
+      --ink: #EDE8E1; --ink-2: #B8AFA5; --ink-3: #7F766D;
+      --copper: #D9803F; --copper-2: #3D2A1C; --copper-ink: #171412;
+      --water: #6FA8D6; --water-2: #1E2E3B;
+      --bean: #C9A27E; --bean-2: #3A2E25;
+      --good: #6CC08F;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171412; --bg-2: #221E1B; --bg-3: #2C2723; --line: #3A332E;
+    --ink: #EDE8E1; --ink-2: #B8AFA5; --ink-3: #7F766D;
+    --copper: #D9803F; --copper-2: #3D2A1C; --copper-ink: #171412;
+    --water: #6FA8D6; --water-2: #1E2E3B;
+    --bean: #C9A27E; --bean-2: #3A2E25;
+    --good: #6CC08F;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+
+  .app { max-width: 1120px; margin: 0 auto; padding: 20px 20px 60px; }
+
+  /* ---------- header ---------- */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 0 20px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand svg { width: 40px; height: 40px; flex: none; }
+  .brand h1 { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -.01em; margin: 0; line-height: 1.1; }
+  .brand p { margin: 0; color: var(--ink-3); font-size: 13px; }
+  .top .status { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
+
+  /* ---------- grid ---------- */
+  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 960px) {
+    .grid { grid-template-columns: 5fr 7fr; align-items: start; }
+    .col-left { display: grid; gap: 16px; position: sticky; top: 16px; }
+    .col-right { display: grid; gap: 16px; }
+  }
+  @media (max-width: 959px) {
+    .col-left, .col-right { display: contents; }
+    /* phone order: recipe → timer → plan → caffeine, so Start and the cue sit right under the dose */
+    #panel-inputs { order: 1; } #panel-timer { order: 2; } #panel-plan { order: 3; } #panel-caffeine { order: 4; }
+    .app { padding: 12px 12px 20px; }
+    .grid { gap: 12px; }
+    .panel { padding: 16px 14px; border-radius: 16px; }
+    .top { padding: 2px 2px 14px; }
+    .brand p { display: none; }
+    .top .status { display: none; }
+    .dose-input input { font-size: 40px; padding: 8px 14px; }
+    .stepper { width: 52px; height: 36px; }
+    .seg button { min-height: 44px; }
+    .presets button { min-height: 44px; }
+    .cue-title { font-size: 30px; }
+    .clock .big { font-size: 72px; }
+    .controls .btn { min-height: 52px; }
+    body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stats .stat.hero { grid-column: 1 / -1; }
+    .result { padding: 0; align-items: flex-end; }
+    .card { width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); animation: sheet .3s cubic-bezier(.2,.9,.3,1); }
+    .card .actions .btn { padding: 12px 10px; font-size: 15px; white-space: nowrap; }
+    .foot { padding: 0 14px 24px; flex-direction: column; gap: 4px; }
+  }
+  @keyframes sheet { from { transform: translateY(40px); opacity: .6; } }
+
+  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+  .panel-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .panel-h h2 { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.005em; }
+  .panel-h .hint { color: var(--ink-3); font-size: 12.5px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+
+  /* ---------- inputs ---------- */
+  .dose { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+  .dose-field { display: grid; gap: 6px; }
+  .dose-field label { font-weight: 600; font-size: 13px; }
+  .dose-input { display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg); overflow: hidden; }
+  .dose-input input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 14px;
+    font-family: var(--font-mono); font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; width: 120px; letter-spacing: -.02em; }
+  .dose-input input:focus { outline: none; }
+  .dose-input .unit { padding: 0 14px 0 0; color: var(--ink-3); font-family: var(--font-mono); font-size: 16px; }
+  .steppers { display: flex; flex-direction: column; gap: 6px; }
+  .stepper { width: 44px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-2); font-family: var(--font-mono); font-size: 16px; font-weight: 700; }
+  .stepper:hover { background: var(--bg-3); }
+  .stepper:active { transform: translateY(1px); }
+  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+  .presets button { border: 1px solid var(--line); background: var(--bg-2); border-radius: 10px; padding: 7px 4px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; display: grid; gap: 1px; justify-items: center; color: var(--ink-2); }
+  .presets button small { font-family: var(--font-body); font-weight: 500; font-size: 10.5px; color: var(--ink-3); }
+  .presets button[aria-pressed="true"] { border-color: var(--copper); background: var(--copper-2); color: var(--ink); }
+  .range-row { display: grid; gap: 6px; margin-top: 16px; }
+  .range-row .lab { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+  .range-row .lab output { font-family: var(--font-mono); font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--copper); margin: 4px 0; }
+  .seg { display: flex; background: var(--bg-3); border-radius: 10px; padding: 3px; gap: 3px; margin-top: 6px; }
+  .seg button { flex: 1; border: 0; background: transparent; padding: 8px 6px; border-radius: 8px; font-weight: 600; font-size: 13px; color: var(--ink-2); display: grid; justify-items: center; gap: 1px; line-height: 1.2; }
+  .seg button small { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; color: var(--ink-3); letter-spacing: .02em; }
+  .seg button[aria-pressed="true"] { background: var(--bg-2); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .seg button[aria-pressed="true"] small { color: var(--copper); }
+  .methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+  .methods button { border: 1.5px solid var(--line); background: var(--bg-2); border-radius: 10px; padding: 8px 4px 6px; display: grid; justify-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--ink-2); line-height: 1.15; }
+  .methods button svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .methods button[aria-pressed="true"] { border-color: var(--copper); background: var(--copper-2); color: var(--ink); }
+  .methods button[aria-pressed="true"] svg { stroke: var(--copper); }
+  .fine { margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; padding: 0 14px; }
+  .fine summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 0; min-height: 44px; }
+  .fine summary::-webkit-details-marker { display: none; }
+  .fine-sum { flex: 1; font-weight: 600; font-size: 13.5px; }
+  .chev { width: 8px; height: 8px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); transform: rotate(45deg); transition: transform .2s; margin-right: 4px; }
+  .fine[open] .chev { transform: rotate(-135deg); }
+  .fine[open] summary { border-bottom: 1px solid var(--line); }
+  .fine > :last-child { margin-bottom: 14px; }
+  .fine .range-row { margin-top: 12px; }
+  .field-lab { font-weight: 600; font-size: 13px; margin-top: 16px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .field-lab span { color: var(--ink-3); font-weight: 500; }
+  .field-lab.block { display: grid; gap: 2px; }
+  .field-lab.block span { font-size: 12.5px; line-height: 1.4; }
+  .summary { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding-top: 12px; gap: 8px; }
+  @media (max-width: 420px) { .summary { grid-template-columns: repeat(2, 1fr); } }
+  .tuned { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--copper-2); font-size: 12.5px; color: var(--ink-2); }
+  .tuned b { color: var(--ink); }
+  .linkbtn { border: 0; background: transparent; color: var(--copper); font-weight: 700; font-size: 12.5px; padding: 2px 4px; }
+  .summary div { display: grid; gap: 2px; }
+  .summary b { font-family: var(--font-mono); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .summary b em { font-style: normal; font-size: 12px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
+
+  /* ---------- plan ---------- */
+  .stages { display: grid; gap: 6px; }
+  .stage { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; background: var(--bg); transition: background .2s, border-color .2s; }
+  .stage .t { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .stage .n { font-weight: 600; font-size: 14px; }
+  .stage .n small { display: block; font-weight: 500; font-size: 12px; color: var(--ink-3); }
+  .stage .w { font-family: var(--font-mono); font-weight: 700; font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; color: var(--water); }
+  .stage .w small { display: block; font-weight: 500; font-size: 11px; color: var(--ink-3); }
+  .stage.done { opacity: .5; }
+  .stage.done .n::after { content: " ✓"; color: var(--good); }
+  .stage.active { background: var(--bg-2); border-color: var(--line); box-shadow: var(--shadow); opacity: 1; }
+  .stage.active.pour { background: var(--copper-2); border-color: var(--copper); }
+  .stage.active .t { color: var(--ink); font-weight: 700; }
+
+  /* ---------- timer ---------- */
+  #panel-timer { position: relative; overflow: hidden; }
+  .timer-cue { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; background: var(--bg-3); margin-bottom: 14px; transition: background .25s; min-height: 92px; }
+  .timer-cue.pour { background: var(--copper); color: var(--copper-ink); }
+  .timer-cue.pour .cue-sub, .timer-cue.pour .eyebrow { color: color-mix(in srgb, var(--copper-ink) 78%, transparent); }
+  .timer-cue.pour .cue-target { color: var(--copper-ink); }
+  .cue-title { font-family: var(--font-display); font-size: 26px; font-weight: 800; line-height: 1.05; letter-spacing: -.015em; text-wrap: balance; margin: 2px 0; }
+  .cue-sub { font-size: 13.5px; color: var(--ink-2); }
+  .cue-target { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .cue-target b { display: block; font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+  .cue-target small { display: block; font-size: 11px; opacity: .8; margin-top: 4px; letter-spacing: .04em; text-transform: uppercase; }
+  .clock { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; }
+  .clock .big { font-family: var(--font-mono); font-size: clamp(56px, 10vw, 84px); font-weight: 700; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .clock .big .ms { font-size: .38em; color: var(--ink-3); font-weight: 500; letter-spacing: 0; }
+  .clock .side { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-3); display: grid; gap: 3px; }
+  .clock .side b { color: var(--ink); font-size: 16px; }
+  .track { position: relative; height: 22px; margin: 14px 0 6px; border-radius: 6px; overflow: hidden; background: var(--bg-3); }
+  .track .seg-bar { position: absolute; top: 0; bottom: 0; }
+  .track .seg-bar.pour { background: var(--copper-2); }
+  .track .seg-bar.wait { background: transparent; }
+  .track .seg-bar.press, .track .seg-bar.stir { background: var(--bean-2); }
+  .track .seg-bar + .seg-bar { border-left: 2px solid var(--bg-2); }
+  .track .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: color-mix(in srgb, var(--ink) 18%, transparent); }
+  .track .head { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); left: 0; }
+  .track-ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
+  .controls { display: flex; gap: 8px; margin-top: 14px; }
+  .btn { border: 1px solid var(--line); background: var(--bg-2); border-radius: 12px; padding: 12px 18px; font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+  .btn:hover { background: var(--bg-3); }
+  .btn.primary { background: var(--copper); border-color: var(--copper); color: var(--copper-ink); flex: 1; justify-content: center; font-size: 16px; }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.ghost { color: var(--ink-2); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+  /* ---------- caffeine ---------- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .stat { padding: 10px 12px; border-radius: 10px; background: var(--bg); display: grid; gap: 2px; }
+  .stat .v { font-family: var(--font-mono); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.1; }
+  .stat .v em { font-style: normal; font-size: 13px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
+  .stat.hero { background: var(--bean-2); }
+  .stat.hero .v { color: var(--bean); font-size: 30px; }
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { width: 100%; height: auto; display: block; }
+  .chart-tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11.5px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -110%); opacity: 0; transition: opacity .12s; }
+  .chart-tip.on { opacity: 1; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--bean); }
+  .legend i.dash { border-top-style: dashed; opacity: .6; }
+  .legend i.band { width: 14px; height: 10px; border: 0; background: var(--copper-2); border-radius: 2px; }
+  .model-note { margin: 12px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+  .model-note code { font-family: var(--font-mono); color: var(--ink-2); }
+
+  /* ---------- result overlay ---------- */
+  .result { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
+  .result.on { display: flex; }
+  .card { width: min(520px, 100%); background: var(--bg-2); border: 1px solid var(--line); border-radius: 20px; padding: 24px; box-shadow: var(--shadow); animation: pop .35s cubic-bezier(.2,.9,.3,1.2); }
+  @keyframes pop { from { transform: translateY(14px) scale(.97); opacity: 0; } }
+  .card h2 { font-family: var(--font-display); font-size: 28px; font-weight: 800; margin: 4px 0 2px; letter-spacing: -.02em; }
+  .card .sub { color: var(--ink-2); margin: 0 0 16px; }
+  .card .hero-num { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-mono); padding: 14px 16px; background: var(--bean-2); border-radius: 12px; margin-bottom: 12px; }
+  .card .hero-num b { font-size: 48px; font-weight: 700; color: var(--bean); letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .card .hero-num span { color: var(--ink-2); font-size: 14px; }
+  .card .hero-num small { margin-left: auto; font-size: 12px; color: var(--ink-3); text-align: right; line-height: 1.3; }
+  .card dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 0 0 16px; }
+  .card dl div { display: grid; gap: 1px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .card dt { font-size: 11.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; font-family: var(--font-mono); }
+  .card dd { margin: 0; font-family: var(--font-mono); font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .card dd em { font-style: normal; font-weight: 500; color: var(--ink-3); font-size: 12px; margin-left: 2px; }
+  .card .equiv { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .card .equiv span { font-size: 12.5px; padding: 6px 10px; border-radius: 999px; background: var(--bg-3); color: var(--ink-2); }
+  .card .actions { display: flex; gap: 8px; }
+  .card .profile { margin: -6px 0 14px; }
+  .card .profile p { margin: 4px 0 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+  .card .taste { border-top: 1px solid var(--line); padding-top: 12px; margin-bottom: 16px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chips button { border: 1.5px solid var(--line); background: var(--bg-2); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  .chips button:hover { background: var(--bg-3); }
+  .chips button[aria-pressed="true"] { border-color: var(--copper); background: var(--copper-2); color: var(--ink); }
+  .advice { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); }
+  .advice p { margin: 0 0 6px; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+  .advice ul { margin: 0 0 10px; padding-left: 18px; font-size: 13.5px; line-height: 1.5; }
+  .advice li b { font-family: var(--font-mono); font-weight: 700; }
+  .btn.small { padding: 8px 14px; font-size: 13.5px; background: var(--copper); border-color: var(--copper); color: var(--copper-ink); }
+  .btn.small:disabled { opacity: 1; background: var(--bg-3); border-color: var(--bg-3); color: var(--ink-2); }
+  @media (max-height: 760px) { .result { align-items: flex-start; overflow-y: auto; } }
+
+  .log { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .log-rows { display: grid; gap: 4px; margin-top: 8px; }
+  .log-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; font-size: 12.5px; color: var(--ink-2); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .log-row b { color: var(--bean); }
+  .empty { color: var(--ink-3); font-size: 12.5px; }
+
+  /* ---------- mobile brew bar + footer ---------- */
+  .brewbar { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 15; padding: 10px 12px; border-radius: 18px; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
+  .brewbar.live { background: var(--ink); color: var(--bg); border-color: transparent; }
+  .brewbar.pour { background: var(--copper); color: var(--copper-ink); }
+  .bb-idle { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
+  .bb-recipe { display: grid; line-height: 1.25; }
+  .bb-recipe b { font-family: var(--font-mono); font-size: 17px; }
+  .bb-recipe span { font-size: 12px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bb-start { flex: 0; padding: 12px 20px; min-height: 48px; }
+  .bb-live { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px; }
+  .bb-clock { font-family: var(--font-mono); font-size: 26px; font-weight: 700; letter-spacing: -.03em; }
+  .bb-cue { display: grid; line-height: 1.2; min-width: 0; }
+  .bb-cue b { font-family: var(--font-display); font-size: 15px; }
+  .bb-cue span { font-size: 11.5px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bb-target { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
+  .bb-btn { width: 40px; height: 40px; border-radius: 12px; border: 0; background: color-mix(in srgb, currentColor 18%, transparent); color: inherit; display: grid; place-items: center; }
+  .bb-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  @media (min-width: 960px) { .brewbar { display: none !important; } }
+  .foot { max-width: 1120px; margin: 0 auto; padding: 0 20px 30px; display: flex; justify-content: space-between; gap: 16px; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+  .foot b { color: var(--ink-2); }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(10px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 30; }
+  .toast.on { opacity: 1; transform: translateX(-50%); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--copper) 50%, transparent); } 60% { box-shadow: 0 0 0 10px transparent; } }
+  .timer-cue.pour { animation: pulse 1.2s ease-out infinite; }
+</style>
+</head><body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M6 8h28l-9 18v0a5 5 0 0 1-10 0z" fill="var(--copper)"/>
+        <path d="M6 8h28" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <path d="M20 30v5" stroke="var(--water)" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="20" cy="37" r="1.6" fill="var(--water)"/>
+      </svg>
+      <div>
+        <h1>Drip Dose</h1>
+        <p>Weigh in grams, pour on cue, know your caffeine.</p>
+      </div>
+    </div>
+    <div class="status" id="status">Ready</div>
+  </header>
+
+  <div class="grid">
+    <div class="col-left">
+      <!-- INPUTS -->
+      <section class="panel" id="panel-inputs" aria-label="Recipe inputs">
+        <div class="panel-h"><h2>Recipe</h2><span class="hint">Everything recalculates as you type</span></div>
+        <div class="dose">
+          <div class="dose-field">
+            <label for="dose">Coffee dose</label>
+            <div class="dose-input">
+              <input id="dose" type="number" inputmode="decimal" min="5" max="120" step="0.5" value="20" aria-label="Coffee dose in grams">
+              <span class="unit">g</span>
+            </div>
+          </div>
+          <div class="steppers">
+            <button class="stepper" id="dose-up" aria-label="Increase dose by one gram">+</button>
+            <button class="stepper" id="dose-down" aria-label="Decrease dose by one gram">−</button>
+          </div>
+        </div>
+
+        <div class="presets" role="group" aria-label="Quick dose">
+          <button data-dose="15">15 g <small>1 small cup</small></button>
+          <button data-dose="20">20 g <small>1 mug</small></button>
+          <button data-dose="30">30 g <small>2 cups</small></button>
+          <button data-dose="45">45 g <small>3 cups</small></button>
+        </div>
+
+        <div class="field-lab block">Brew method <span id="method-hint"></span></div>
+        <div class="methods" role="group" aria-label="Brew method" id="methods"></div>
+
+        <details class="fine" id="fine">
+          <summary><span class="eyebrow">Fine-tune</span><span class="fine-sum" id="fine-sum">1:16 · Arabica · Medium roast</span><span class="chev" aria-hidden="true"></span></summary>
+          <div class="range-row">
+            <div class="lab"><label for="ratio">Brew ratio</label><output id="ratio-out">1 : 16</output></div>
+            <input id="ratio" type="range" min="10" max="20" step="0.5" value="16">
+          </div>
+
+          <div class="field-lab">Bean species <span id="species-hint">≈ 12 mg caffeine per gram</span></div>
+          <div class="seg" role="group" aria-label="Bean species" id="species">
+            <button data-species="arabica" aria-pressed="true">Arabica <small>~1.2% caffeine</small></button>
+            <button data-species="robusta" aria-pressed="false">Robusta <small>~2.2% caffeine</small></button>
+          </div>
+
+          <div class="field-lab">Roast level <span id="roast-hint"></span></div>
+          <div class="seg" role="group" aria-label="Roast level" id="roast">
+            <button data-roast="light" aria-pressed="false">Light <small>hotter water</small></button>
+            <button data-roast="medium" aria-pressed="true">Medium <small>the safe default</small></button>
+            <button data-roast="dark" aria-pressed="false">Dark <small>cooler water</small></button>
+          </div>
+        </details>
+
+        <div class="summary">
+          <div><span class="eyebrow">Water</span><b id="sum-water">320<em>g</em></b></div>
+          <div><span class="eyebrow">Kettle</span><b id="sum-temp">93<em>°C</em></b></div>
+          <div><span class="eyebrow">Brew time</span><b id="sum-time">3:30</b></div>
+          <div><span class="eyebrow">Yield</span><b id="sum-yield">≈290<em>ml</em></b></div>
+        </div>
+        <div class="tuned" id="tuned" hidden>
+          <span id="tuned-text"></span>
+          <button id="tuned-reset" class="linkbtn">Reset</button>
+        </div>
+      </section>
+
+      <!-- PLAN -->
+      <section class="panel" id="panel-plan" aria-label="Pour plan">
+        <div class="panel-h"><h2>Pour plan</h2><span class="hint" id="plan-hint">Cumulative scale targets</span></div>
+        <div class="stages" id="stages"></div>
+      </section>
+    </div>
+
+    <div class="col-right">
+      <!-- TIMER -->
+      <section class="panel" id="panel-timer" aria-label="Brew timer">
+        <div class="panel-h"><h2>Brew timer</h2><span class="hint" id="timer-hint">Press start when your kettle is ready</span></div>
+        <div class="timer-cue" id="cue" aria-live="polite">
+          <div>
+            <div class="eyebrow" id="cue-eyebrow">Up first</div>
+            <div class="cue-title" id="cue-title">Bloom</div>
+            <div class="cue-sub" id="cue-sub"></div>
+          </div>
+          <div class="cue-target"><b id="cue-target">0</b><small id="cue-target-lab">g on scale</small></div>
+        </div>
+        <div class="clock">
+          <div class="big" id="clock">0:00<span class="ms">.0</span></div>
+          <div class="side">
+            <span>stage ends in</span><b id="stage-left">0:45</b>
+            <span>total</span><b id="total-left">3:30</b>
+          </div>
+        </div>
+        <div class="track" id="track"><div class="fill" id="track-fill"></div><div class="head" id="track-head"></div></div>
+        <div class="track-ticks" id="track-ticks"></div>
+        <div class="controls">
+          <button class="btn primary" id="start"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span></button>
+          <button class="btn ghost" id="reset" disabled>Reset</button>
+        </div>
+      </section>
+
+      <!-- CAFFEINE -->
+      <section class="panel" id="panel-caffeine" aria-label="Caffeine extraction">
+        <div class="panel-h"><h2>Caffeine extraction</h2><span class="hint">Live, from first water contact</span></div>
+        <div class="stats">
+          <div class="stat hero"><span class="eyebrow">In the cup</span><div class="v" id="caf-now">0<em>mg</em></div></div>
+          <div class="stat"><span class="eyebrow">Extracted</span><div class="v" id="caf-pct">0<em>%</em></div></div>
+          <div class="stat"><span class="eyebrow">Available in dose</span><div class="v" id="caf-max">240<em>mg</em></div></div>
+        </div>
+        <div class="chart-wrap" id="chart-wrap">
+          <svg id="chart" viewBox="0 0 640 260" role="img" aria-label="Caffeine extracted over brew time"></svg>
+          <div class="chart-tip" id="chart-tip"></div>
+        </div>
+        <div class="legend">
+          <span><i></i> extracted so far</span>
+          <span><i class="dash"></i> projected curve</span>
+          <span><i class="band"></i> pouring</span>
+        </div>
+        <p class="model-note">Model: <code>C(t) = C<sub>dry</sub> · E<sub>max</sub> · (1 − e<sup>−kt</sup>)</code>. Caffeine is highly water-soluble, so most of it leaves the grounds during the bloom and first pour; later pours mostly add body and volume. <span id="model-k"></span></p>
+        <div class="log">
+          <span class="eyebrow">Recent brews</span>
+          <div class="log-rows" id="log"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE BREW BAR: stays on screen while you scroll to the pour plan or caffeine chart -->
+<div class="brewbar" id="brewbar">
+  <div class="bb-idle" id="bb-idle">
+    <div class="bb-recipe"><b id="bb-recipe">320 g · 93 °C</b><span id="bb-recipe-sub">20 g V60 · 3:30</span></div>
+    <button class="btn primary bb-start" id="bb-start"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span></button>
+  </div>
+  <div class="bb-live" id="bb-live" hidden>
+    <div class="bb-clock" id="bb-clock">0:00</div>
+    <div class="bb-cue"><b id="bb-title">Bloom</b><span id="bb-sub"></span></div>
+    <div class="bb-target" id="bb-target">0 g</div>
+    <button class="bb-btn" id="bb-pause" aria-label="Pause or resume"><svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg></button>
+  </div>
+</div>
+
+<footer class="foot">
+  <span>Add Drip Dose to your home screen: on iPhone tap Share → <b>Add to Home Screen</b>; on Android tap ⋮ → <b>Install app</b>. Works offline once installed.</span>
+  <span id="version">build 20260904143912</span>
+</footer>
+
+<!-- RESULT CARD -->
+<div class="result" id="result" role="dialog" aria-modal="true" aria-labelledby="res-title">
+  <div class="card">
+    <span class="eyebrow" id="res-eyebrow">Brew complete</span>
+    <h2 id="res-title">Your cup</h2>
+    <p class="sub" id="res-sub"></p>
+    <div class="hero-num"><b id="res-caf">0</b><span>mg caffeine</span><small id="res-caf-note"></small></div>
+    <dl>
+      <div><dt>Coffee</dt><dd id="res-dose"></dd></div>
+      <div><dt>Water</dt><dd id="res-water"></dd></div>
+      <div><dt>Extraction</dt><dd id="res-pct"></dd></div>
+      <div><dt>Brew time</dt><dd id="res-time"></dd></div>
+    </dl>
+    <div class="equiv" id="res-equiv"></div>
+    <div class="profile">
+      <span class="eyebrow">Expected cup</span>
+      <p id="res-profile"></p>
+    </div>
+    <div class="taste">
+      <span class="eyebrow">How did it taste?</span>
+      <div class="chips" id="taste-chips" role="group" aria-label="Taste feedback">
+        <button data-taste="sour">Sour · thin</button>
+        <button data-taste="bitter">Bitter · harsh</button>
+        <button data-taste="weak">Weak · watery</button>
+        <button data-taste="strong">Too strong</button>
+        <button data-taste="good">Just right</button>
+      </div>
+      <div class="advice" id="taste-advice" hidden>
+        <p id="advice-why"></p>
+        <ul id="advice-list"></ul>
+        <button class="btn small" id="advice-apply"></button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="again">Brew again</button>
+      <button class="btn ghost" id="tweak">Change recipe</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Brew methods ----------
+  // Stages: fraction = cumulative water at END of stage, as a share of total water.
+  // Pours are timed so the scale target is reached by the stage's end.
+  const ICON = {
+    cone: '<path d="M5 6h16l-6 12h-4z"/><path d="M11 18v2"/>',
+    chemex: '<path d="M8 3h8l-3 8 4 9H7l4-9z"/><path d="M9 12h6"/>',
+    wave: '<path d="M4 7h16l-3 12H7z"/><path d="M7 12h10"/><path d="M8 16h8"/>',
+    aero: '<rect x="8" y="3" width="8" height="15" rx="1"/><path d="M6 18h12"/><path d="M12 3v-1"/>',
+    press: '<path d="M6 8h12v12H6z"/><path d="M12 4v4"/><path d="M8 4h8"/><path d="M8 13h8"/>',
+    clever: '<path d="M6 5h12l-2 11H8z"/><path d="M9 16v3h6v-3"/>'
+  };
+  const METHODS = [
+    { id: 'v60', name: 'V60', icon: 'cone', ratio: 16, k: 0.025, emax: 0.92, kind: 'Percolation',
+      note: 'Hoffmann-style: heavy bloom, two pours, gentle drawdown.',
+      stages: [
+        { name: 'Bloom pour', sub: 'Saturate all grounds, swirl gently', type: 'pour', t: [0, 10], frac: 'bloom' },
+        { name: 'Bloom', sub: 'Let CO₂ escape — no pouring', type: 'wait', t: [10, 45] },
+        { name: 'Pour 1', sub: 'Steady spiral to 60%', type: 'pour', t: [45, 75], frac: 0.6 },
+        { name: 'Pour 2', sub: 'Slow, gentle, to full weight', type: 'pour', t: [75, 105], frac: 1 },
+        { name: 'Drawdown', sub: 'Swirl once, then let it drain', type: 'wait', t: [105, 210] } ] },
+    { id: 'chemex', name: 'Chemex', icon: 'chemex', ratio: 16, k: 0.022, emax: 0.90, kind: 'Percolation',
+      note: 'Thick filter, so pours are bigger and drawdown is longer.',
+      stages: [
+        { name: 'Bloom pour', sub: 'Wet all grounds, wait for the puff', type: 'pour', t: [0, 12], frac: 'bloom' },
+        { name: 'Bloom', sub: 'Rest', type: 'wait', t: [12, 45] },
+        { name: 'Pour 1', sub: 'Spiral out to 50%', type: 'pour', t: [45, 90], frac: 0.5 },
+        { name: 'Pour 2', sub: 'Top up to full weight', type: 'pour', t: [90, 150], frac: 1 },
+        { name: 'Drawdown', sub: 'Let it drain fully', type: 'wait', t: [150, 270] } ] },
+    { id: 'kalita', name: 'Kalita Wave', icon: 'wave', ratio: 16, k: 0.024, emax: 0.92, kind: 'Percolation',
+      note: 'Flat bed, pulse pours: three small additions keep the bed level.',
+      stages: [
+        { name: 'Bloom pour', sub: 'Just enough to wet the bed', type: 'pour', t: [0, 10], frac: 'bloom' },
+        { name: 'Bloom', sub: 'Rest', type: 'wait', t: [10, 30] },
+        { name: 'Pulse 1', sub: 'Center-out to 40%', type: 'pour', t: [30, 55], frac: 0.4 },
+        { name: 'Pulse 2', sub: 'To 70%', type: 'pour', t: [70, 95], frac: 0.7 },
+        { name: 'Pulse 3', sub: 'To full weight', type: 'pour', t: [110, 135], frac: 1 },
+        { name: 'Drawdown', sub: 'Let it drain', type: 'wait', t: [135, 195] } ] },
+    { id: 'aeropress', name: 'AeroPress', icon: 'aero', ratio: 14, k: 0.030, emax: 0.88, kind: 'Immersion',
+      note: 'Fine grind, all water at once, then press.',
+      stages: [
+        { name: 'Pour all water', sub: 'Fill to the top in one go', type: 'pour', t: [0, 15], frac: 1 },
+        { name: 'Stir', sub: 'Three gentle turns', type: 'stir', t: [15, 25] },
+        { name: 'Steep', sub: 'Cap on, wait', type: 'wait', t: [25, 90] },
+        { name: 'Press', sub: 'Slow, even pressure — 30 s', type: 'press', t: [90, 120] } ] },
+    { id: 'frenchpress', name: 'French Press', icon: 'press', ratio: 15, k: 0.018, emax: 0.90, kind: 'Immersion',
+      note: 'Coarse grind, long steep, break the crust, plunge just under the surface.',
+      stages: [
+        { name: 'Pour all water', sub: 'Fill, no stirring', type: 'pour', t: [0, 20], frac: 1 },
+        { name: 'Steep', sub: 'Lid off, leave it alone', type: 'wait', t: [20, 240] },
+        { name: 'Break & skim', sub: 'Stir the crust, spoon off the foam', type: 'stir', t: [240, 270] },
+        { name: 'Settle', sub: 'Let fines sink', type: 'wait', t: [270, 390] },
+        { name: 'Plunge & pour', sub: 'Plunge to the surface, decant', type: 'press', t: [390, 420] } ] },
+    { id: 'clever', name: 'Clever', icon: 'clever', ratio: 16, k: 0.021, emax: 0.90, kind: 'Immersion',
+      note: 'Immersion with a paper filter: steep, then drain.',
+      stages: [
+        { name: 'Pour all water', sub: 'Fill in one go', type: 'pour', t: [0, 20], frac: 1 },
+        { name: 'Steep', sub: 'Lid on, wait', type: 'wait', t: [20, 150] },
+        { name: 'Drain', sub: 'Set on the cup and let it drain', type: 'press', t: [150, 210] } ] },
+  ];
+  const SPECIES = { arabica: { name: 'Arabica', mgPerG: 12 }, robusta: { name: 'Robusta', mgPerG: 22 } };
+  // Roast sets the kettle temperature and how fast the coffee gives up its solubles.
+  // Light roasts are dense and slow to extract (hotter water); dark roasts are porous and fast (cooler water).
+  const ROAST = {
+    light:  { name: 'Light',  temp: 96, kMul: 0.90, taste: 'bright acidity, floral or fruit notes, lighter body' },
+    medium: { name: 'Medium', temp: 93, kMul: 1.00, taste: 'balanced sweetness, caramel and nut, medium body' },
+    dark:   { name: 'Dark',   temp: 88, kMul: 1.10, taste: 'chocolate and roast notes, low acidity, heavier body' },
+  };
+  const BODY = { v60: 'clean and tea-like', chemex: 'very clean, light and crisp', kalita: 'clean with a rounder body', aeropress: 'smooth and full', frenchpress: 'heavy, oily and full-bodied', clever: 'full-bodied but clean' };
+  const TEMP_K = 0.015; // caffeine k changes ~1.5% per °C around 93 °C
+  const cToF = c => Math.round(c * 9 / 5 + 32);
+  const BLOOM_MULT = 2.5; // bloom water = dose × 2.5 (typical 2–3×)
+  const RETAINED_PER_G = 2; // grounds hold ~2 g water per g of coffee
+
+  // ---------- State ----------
+  const state = {
+    dose: 20, ratio: 16, species: 'arabica', roast: 'medium', method: METHODS[0],
+    tune: { temp: 0, time: 0, ratio: 0 }, // carried from taste feedback: °C, seconds of contact time, ratio points
+    running: false, startedAt: 0, elapsed: 0, finished: false, lastStage: -1,
+  };
+  const TUNE_KEY = 'dripdose.tune';
+  try { const t = JSON.parse(localStorage.getItem(TUNE_KEY) || 'null'); if (t) state.tune = { temp: 0, time: 0, ratio: 0, ...t }; } catch (e) {}
+  const saveTune = () => { try { localStorage.setItem(TUNE_KEY, JSON.stringify(state.tune)); } catch (e) {} };
+
+  // ---------- Derived ----------
+  function effectiveRatio() { return Math.max(10, Math.min(20, state.ratio + state.tune.ratio)); }
+  function recipe() {
+    const ratio = effectiveRatio();
+    const water = state.dose * ratio;
+    const bloom = Math.min(state.dose * BLOOM_MULT, water);
+    const roast = ROAST[state.roast];
+    const temp = Math.max(80, Math.min(100, roast.temp + (state.method.id === 'aeropress' ? -2 : 0) + state.tune.temp));
+    // Taste tuning stretches or shortens the first rest (bloom / steep) and shifts everything after it.
+    let shift = 0, applied = false;
+    const stages = state.method.stages.map(s => {
+      let [a, b] = s.t; a += shift; b += shift;
+      if (!applied && s.type === 'wait') { b = Math.max(a + 10, b + state.tune.time); shift = b - s.t[1]; applied = true; }
+      const target = s.frac === 'bloom' ? bloom : s.frac ? s.frac * water : null;
+      return { ...s, t: [a, b], target };
+    });
+    // carry cumulative targets forward so waits show the current scale weight
+    let cum = 0;
+    for (const s of stages) { if (s.target != null) cum = s.target; s.cum = cum; }
+    const total = stages[stages.length - 1].t[1];
+    const cdry = state.dose * SPECIES[state.species].mgPerG;
+    const k = state.method.k * roast.kMul * (1 + (temp - 93) * TEMP_K);
+    return { water, bloom, stages, total, cdry, k, temp, ratio, yieldMl: Math.max(0, water - state.dose * RETAINED_PER_G) };
+  }
+  function caffeineAt(t, r) {
+    if (t <= 0) return 0;
+    return r.cdry * state.method.emax * (1 - Math.exp(-r.k * t));
+  }
+  // A plain-language prediction of the cup from the settings (strength from ratio, body from method, flavor from roast/temp).
+  function cupProfile(r) {
+    const strength = r.ratio <= 13 ? 'strong and concentrated' : r.ratio <= 15 ? 'on the strong side' : r.ratio <= 17 ? 'medium strength' : 'light and delicate';
+    const roast = ROAST[state.roast];
+    const base = roast.temp + (state.method.id === 'aeropress' ? -2 : 0);
+    const tempNote = r.temp > base + 1 ? ' Hotter-than-usual water pushes extraction up: expect more sweetness and a touch more bitterness.'
+      : r.temp < base - 1 ? ' Cooler water holds extraction back: expect softer, brighter, less bitter.' : '';
+    return `${strength.charAt(0).toUpperCase() + strength.slice(1)}, ${BODY[state.method.id]}; ${roast.taste}.${tempNote}`;
+  }
+  // Taste → what to change next time. Under-extraction (sour/thin) wants more extraction; over (bitter) wants less;
+  // strength is a ratio problem, not an extraction problem.
+  const TASTE = {
+    sour:   { why: 'Sour or thin usually means under-extraction: the water did not pull enough sweetness out of the grounds.',
+              tune: { temp: +3, time: +15 }, tips: ['Grind a little finer'] },
+    bitter: { why: 'Bitter or harsh usually means over-extraction: the water pulled too much from the grounds.',
+              tune: { temp: -3, time: -15 }, tips: ['Grind a little coarser'] },
+    weak:   { why: 'Weak or watery is about strength, not extraction — there is too much water for the coffee.',
+              tune: { ratio: -1 }, tips: [] },
+    strong: { why: 'Too strong is a ratio problem — the extraction can be fine, there is just not enough water.',
+              tune: { ratio: +1 }, tips: [] },
+    good:   { why: 'Nice. These settings are your recipe for this coffee — keep them.', tune: {}, tips: [] },
+  };
+  function tuneSummary() {
+    const p = [];
+    if (state.tune.temp) p.push(`${state.tune.temp > 0 ? '+' : ''}${state.tune.temp} °C`);
+    if (state.tune.time) p.push(`${state.tune.time > 0 ? '+' : ''}${state.tune.time} s rest`);
+    if (state.tune.ratio) p.push(`ratio ${state.tune.ratio > 0 ? '+' : ''}${state.tune.ratio}`);
+    return p.join(' · ');
+  }
+  function stageIndexAt(t, stages) {
+    for (let i = 0; i < stages.length; i++) {
+      if (t < stages[i].t[1]) return i;
+    }
+    return stages.length; // finished
+  }
+
+  // ---------- Helpers ----------
+  const $ = id => document.getElementById(id);
+  const fmtT = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const fmtG = g => (Math.round(g * 2) / 2).toString().replace(/\.0$/, '');
+  const round = (v, d = 0) => Math.round(v * 10 ** d) / 10 ** d;
+
+  // ---------- Render: inputs ----------
+  function renderMethods() {
+    $('methods').innerHTML = METHODS.map(m =>
+      `<button data-method="${m.id}" aria-pressed="${m.id === state.method.id}"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[m.icon]}</svg>${m.name}</button>`).join('');
+  }
+  function renderInputs() {
+    const r = recipe();
+    $('ratio-out').textContent = `1 : ${state.ratio}` + (state.tune.ratio ? ` → 1 : ${r.ratio}` : '');
+    $('species-hint').textContent = `≈ ${SPECIES[state.species].mgPerG} mg caffeine per gram`;
+    $('roast-hint').textContent = `${r.temp} °C · ${cToF(r.temp)} °F water`;
+    $('fine-sum').textContent = `1:${r.ratio} · ${SPECIES[state.species].name} · ${ROAST[state.roast].name} roast`;
+    $('method-hint').textContent = `${state.method.kind} · ${state.method.note}`;
+    document.querySelectorAll('.presets button').forEach(b => b.setAttribute('aria-pressed', parseFloat(b.dataset.dose) === state.dose));
+    $('sum-water').innerHTML = `${fmtG(r.water)}<em>g</em>`;
+    $('sum-temp').innerHTML = `${r.temp}<em>°C</em> <em>${cToF(r.temp)}°F</em>`;
+    $('sum-time').textContent = fmtT(r.total);
+    $('sum-yield').innerHTML = `≈${Math.round(r.yieldMl)}<em>ml</em>`;
+    $('caf-max').innerHTML = `${Math.round(r.cdry)}<em>mg</em>`;
+    const tuned = tuneSummary();
+    $('tuned').hidden = !tuned;
+    $('tuned-text').innerHTML = `Tuned from your last cup: <b>${tuned}</b>`;
+    $('model-k').textContent = `For ${state.method.name}, ${ROAST[state.roast].name.toLowerCase()} roast at ${r.temp} °C: k = ${r.k.toFixed(4)}/s, Emax = ${Math.round(state.method.emax * 100)}% — ${Math.round((1 - Math.exp(-r.k * 60)) * 100)}% of extractable caffeine is out by 1:00.`;
+    document.querySelectorAll('#species button').forEach(b => b.setAttribute('aria-pressed', b.dataset.species === state.species));
+    document.querySelectorAll('#roast button').forEach(b => b.setAttribute('aria-pressed', b.dataset.roast === state.roast));
+    document.querySelectorAll('#methods button').forEach(b => b.setAttribute('aria-pressed', b.dataset.method === state.method.id));
+    $('plan-hint').textContent = state.method.kind === 'Percolation' ? 'Cumulative scale targets' : 'Single pour, then time';
+  }
+
+  // ---------- Render: plan ----------
+  function renderStages(r, idx) {
+    $('stages').innerHTML = r.stages.map((s, i) => {
+      const cls = ['stage', s.type, i < idx ? 'done' : '', i === idx ? 'active' : ''].join(' ');
+      const w = s.target != null
+        ? `<div class="w">${fmtG(s.target)}<small>g by ${fmtT(s.t[1])}</small></div>`
+        : `<div class="w" style="color:var(--ink-3)">${fmtG(s.cum)}<small>g · hold</small></div>`;
+      return `<div class="${cls}"><div class="t">${fmtT(s.t[0])}</div><div class="n">${s.name}<small>${s.sub}</small></div>${w}</div>`;
+    }).join('');
+  }
+
+  // ---------- Render: timer track ----------
+  function renderTrack(r) {
+    const track = $('track');
+    track.querySelectorAll('.seg-bar').forEach(e => e.remove());
+    const fill = $('track-fill');
+    r.stages.forEach(s => {
+      const d = document.createElement('div');
+      d.className = `seg-bar ${s.type}`;
+      d.style.left = (s.t[0] / r.total * 100) + '%';
+      d.style.width = ((s.t[1] - s.t[0]) / r.total * 100) + '%';
+      track.insertBefore(d, fill);
+    });
+    const ticks = [];
+    const step = r.total <= 240 ? 30 : 60;
+    for (let t = 0; t <= r.total; t += step) ticks.push(t);
+    if (ticks[ticks.length - 1] !== r.total) ticks.push(r.total);
+    $('track-ticks').innerHTML = ticks.map(t => `<span>${fmtT(t)}</span>`).join('');
+  }
+
+  // ---------- Render: live timer ----------
+  function renderTimer(r, t) {
+    const idx = stageIndexAt(t, r.stages);
+    const s = r.stages[idx];
+    const cue = $('cue');
+    cue.className = 'timer-cue' + (s && s.type === 'pour' && state.running ? ' pour' : '');
+    if (!s) {
+      $('cue-eyebrow').textContent = 'Done'; $('cue-title').textContent = 'Serve';
+      $('cue-sub').textContent = 'Brew complete.'; $('cue-target').textContent = fmtG(r.water); $('cue-target-lab').textContent = 'g final';
+      $('stage-left').textContent = '0:00';
+    } else {
+      const started = state.running || state.elapsed > 0;
+      const verb = { pour: 'Pour', wait: 'Wait', stir: 'Stir', press: 'Press' }[s.type];
+      $('cue-eyebrow').textContent = !started ? `Heat water to ${r.temp} °C / ${cToF(r.temp)} °F · up first` : s.type === 'pour' ? `Pour now · ${fmtT(s.t[1] - t)} left` : `${verb} · next in ${fmtT(s.t[1] - t)}`;
+      $('cue-title').textContent = s.name;
+      const next = r.stages[idx + 1];
+      $('cue-sub').textContent = s.sub + (next ? ` · then ${next.name.toLowerCase()} at ${fmtT(next.t[0])}` : '');
+      if (s.type === 'pour') {
+        // interpolate the live scale target so the user can pace the pour
+        const from = idx > 0 ? r.stages[idx - 1].cum : 0;
+        const p = Math.min(1, Math.max(0, (t - s.t[0]) / (s.t[1] - s.t[0])));
+        $('cue-target').textContent = fmtG(from + (s.target - from) * (started ? p : 0));
+        $('cue-target-lab').textContent = `→ ${fmtG(s.target)} g`;
+      } else {
+        $('cue-target').textContent = fmtG(s.cum);
+        $('cue-target-lab').textContent = 'g on scale';
+      }
+      $('stage-left').textContent = fmtT(s.t[1] - t);
+    }
+    $('total-left').textContent = fmtT(r.total - t);
+    // mirror into the mobile brew bar
+    const bb = $('brewbar');
+    const live = state.running || (state.elapsed > 0 && !state.finished);
+    $('bb-live').hidden = !live; $('bb-idle').hidden = live;
+    bb.classList.toggle('live', live);
+    bb.classList.toggle('pour', !!(s && s.type === 'pour' && state.running));
+    $('bb-recipe').textContent = `${fmtG(r.water)} g · ${r.temp} °C`;
+    $('bb-recipe-sub').textContent = `${state.method.name} · ${fmtT(r.total)} · ≈${Math.round(caffeineAt(r.total, r))} mg`;
+    $('bb-clock').textContent = fmtT(Math.floor(t));
+    $('bb-title').textContent = s ? s.name : 'Done';
+    $('bb-sub').textContent = s ? `${s.type === 'pour' ? 'Pour now · ' : ''}${fmtT(s.t[1] - t)} left` + (r.stages[idx + 1] ? ` · next: ${r.stages[idx + 1].name}` : '') : '';
+    $('bb-target').textContent = $('cue-target').textContent + ' g';
+    $('bb-pause').innerHTML = state.running ? '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>' : '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>';
+    const tenths = Math.floor((t % 1) * 10);
+    $('clock').innerHTML = `${fmtT(Math.floor(t))}<span class="ms">.${tenths}</span>`;
+    const pct = Math.min(100, t / r.total * 100);
+    $('track-fill').style.width = pct + '%';
+    $('track-head').style.left = `calc(${pct}% - 1px)`;
+    if (idx !== state.lastStage) { renderStages(r, idx); state.lastStage = idx; }
+    // stats
+    const caf = caffeineAt(t, r);
+    $('caf-now').innerHTML = `${round(caf, caf < 10 ? 1 : 0)}<em>mg</em>`;
+    $('caf-pct').innerHTML = `${Math.round(caf / r.cdry * 100)}<em>%</em>`;
+    renderChart(r, t);
+  }
+
+  // ---------- Chart ----------
+  const CH = { w: 640, h: 260, l: 60, r: 16, t: 18, b: 34 };
+  function renderChart(r, t) {
+    const yMax = Math.ceil(r.cdry / 50) * 50 || 50;
+    const x = s => CH.l + (s / r.total) * (CH.w - CH.l - CH.r);
+    const y = mg => CH.t + (1 - mg / yMax) * (CH.h - CH.t - CH.b);
+    const pts = (to) => { const a = []; const n = 120; for (let i = 0; i <= n; i++) { const s = to * i / n; a.push(`${x(s).toFixed(1)},${y(caffeineAt(s, r)).toFixed(1)}`); } return a.join(' '); };
+    const bands = r.stages.filter(s => s.type === 'pour').map(s =>
+      `<rect x="${x(s.t[0])}" y="${CH.t}" width="${x(s.t[1]) - x(s.t[0])}" height="${CH.h - CH.t - CH.b}" fill="var(--copper-2)"/>`).join('');
+    const yTicks = []; for (let v = 0; v <= yMax; v += yMax / 4) yTicks.push(v);
+    const grid = yTicks.map(v => `<line x1="${CH.l}" x2="${CH.w - CH.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>
+      <text x="${CH.l - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="var(--font-mono)">${Math.round(v)}${v === yMax ? ' mg' : ''}</text>`).join('');
+    const step = r.total <= 240 ? 30 : 60;
+    let xt = '';
+    for (let s = 0; s <= r.total; s += step) xt += `<text x="${x(s)}" y="${CH.h - 12}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="var(--font-mono)">${fmtT(s)}</text>`;
+    const nowMg = caffeineAt(t, r);
+    const live = t > 0 ? `<polyline points="${pts(t)}" fill="none" stroke="var(--bean)" stroke-width="2.5" stroke-linejoin="round"/>
+      <circle cx="${x(t)}" cy="${y(nowMg)}" r="5" fill="var(--bean)" stroke="var(--bg-2)" stroke-width="2"/>
+      <text x="${Math.min(x(t) + 8, CH.w - CH.r - 60)}" y="${Math.max(CH.t + 12, y(nowMg) - 10)}" font-size="12" font-weight="700" fill="var(--ink)" font-family="var(--font-mono)">${Math.round(nowMg)} mg</text>` : '';
+    const plateau = r.cdry * state.method.emax;
+    $('chart').innerHTML = `
+      ${bands}${grid}
+      <line x1="${CH.l}" x2="${CH.w - CH.r}" y1="${y(plateau)}" y2="${y(plateau)}" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 4"/>
+      <text x="${CH.w - CH.r}" y="${y(plateau) - 5}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="var(--font-mono)">max ${Math.round(plateau)} mg</text>
+      <polyline points="${pts(r.total)}" fill="none" stroke="var(--bean)" stroke-width="1.5" stroke-dasharray="4 4" opacity=".5"/>
+      ${live}${xt}
+      <rect id="chart-hit" x="${CH.l}" y="${CH.t}" width="${CH.w - CH.l - CH.r}" height="${CH.h - CH.t - CH.b}" fill="transparent"/>`;
+  }
+  // hover tooltip (reads the model, not the DOM)
+  (() => {
+    const wrap = $('chart-wrap'), svg = $('chart'), tip = $('chart-tip');
+    const onMove = e => {
+      const r = recipe(); const box = svg.getBoundingClientRect();
+      const px = (e.clientX - box.left) / box.width * CH.w;
+      const s = Math.max(0, Math.min(r.total, (px - CH.l) / (CH.w - CH.l - CH.r) * r.total));
+      const mg = caffeineAt(s, r);
+      tip.textContent = `${fmtT(s)} → ${Math.round(mg)} mg (${Math.round(mg / r.cdry * 100)}%)`;
+      const yMax = Math.ceil(r.cdry / 50) * 50 || 50;
+      const yy = (CH.t + (1 - mg / yMax) * (CH.h - CH.t - CH.b)) / CH.h * box.height;
+      const xx = (CH.l + (s / r.total) * (CH.w - CH.l - CH.r)) / CH.w * box.width;
+      tip.style.left = xx + 'px'; tip.style.top = yy + 'px'; tip.classList.add('on');
+    };
+    wrap.addEventListener('pointermove', onMove);
+    wrap.addEventListener('pointerleave', () => tip.classList.remove('on'));
+  })();
+
+  // ---------- Timer loop ----------
+  let raf = 0;
+  function tick() {
+    const r = recipe();
+    const t = state.running ? (performance.now() - state.startedAt) / 1000 : state.elapsed;
+    const idx = stageIndexAt(t, r.stages);
+    if (state.running && idx !== state.lastStage && state.lastStage >= 0) chime(idx >= r.stages.length ? 'done' : r.stages[idx].type === 'pour' ? 'pour' : 'step');
+    renderTimer(r, Math.min(t, r.total));
+    if (state.running && t >= r.total) { finish(r); return; }
+    if (state.running) raf = requestAnimationFrame(tick);
+  }
+  function start() {
+    const r = recipe();
+    unlockAudio();
+    state.running = true; state.finished = false;
+    state.startedAt = performance.now() - state.elapsed * 1000;
+    state.lastStage = -1;
+    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg><span>Pause</span>';
+    $('reset').disabled = false;
+    $('status').textContent = 'Brewing';
+    $('timer-hint').textContent = 'Pour when the cue turns copper';
+    lockInputs(true); requestWakeLock();
+    cancelAnimationFrame(raf); tick();
+  }
+  function pause() {
+    state.elapsed = (performance.now() - state.startedAt) / 1000;
+    state.running = false; cancelAnimationFrame(raf);
+    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Resume</span>';
+    $('status').textContent = 'Paused'; $('cue').classList.remove('pour');
+    releaseWakeLock();
+  }
+  function reset() {
+    state.running = false; state.elapsed = 0; state.finished = false; state.lastStage = -1;
+    cancelAnimationFrame(raf);
+    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span>';
+    $('reset').disabled = true; $('status').textContent = 'Ready';
+    $('timer-hint').textContent = 'Press start when your kettle is ready';
+    $('result').classList.remove('on');
+    lockInputs(false); releaseWakeLock();
+    renderAll();
+  }
+  function finish(r) {
+    state.running = false; state.finished = true; state.elapsed = r.total;
+    cancelAnimationFrame(raf); releaseWakeLock();
+    $('status').textContent = 'Done';
+    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span>';
+    const caf = caffeineAt(r.total, r);
+    const sp = SPECIES[state.species];
+    $('res-sub').textContent = `${state.method.name} · ${fmtG(state.dose)} g ${ROAST[state.roast].name.toLowerCase()} ${sp.name} · 1:${r.ratio} · ${r.temp} °C`;
+    $('res-profile').textContent = cupProfile(r);
+    document.querySelectorAll('#taste-chips button').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    $('taste-advice').hidden = true;
+    $('res-caf').textContent = Math.round(caf);
+    $('res-caf-note').textContent = `of ${Math.round(r.cdry)} mg in the dry dose`;
+    $('res-dose').innerHTML = `${fmtG(state.dose)}<em>g</em>`;
+    $('res-water').innerHTML = `${fmtG(r.water)}<em>g · ≈${Math.round(r.yieldMl)} ml out</em>`;
+    $('res-pct').innerHTML = `${Math.round(caf / r.cdry * 100)}<em>% of caffeine</em>`;
+    $('res-time').textContent = fmtT(r.total);
+    const perCup = caf / Math.max(1, r.yieldMl / 240);
+    const eq = [
+      `≈ ${round(caf / 63, 1)}× a single espresso (63 mg)`,
+      `${Math.round(perCup)} mg per 240 ml cup`,
+      `${Math.round(caf / 400 * 100)}% of the 400 mg daily guideline`,
+      caf > 150 ? 'Big cup — maybe split it' : caf < 60 ? 'Gentle — a good afternoon brew' : 'Right in the classic mug range',
+    ];
+    $('res-equiv').innerHTML = eq.map(e => `<span>${e}</span>`).join('');
+    saveLog({ when: Date.now(), method: state.method.name, dose: state.dose, species: sp.name, roast: ROAST[state.roast].name, temp: r.temp, mg: Math.round(caf) });
+    renderLog();
+    $('result').classList.add('on');
+    $('again').focus();
+  }
+  function lockInputs(on) {
+    ['dose', 'ratio', 'dose-up', 'dose-down'].forEach(id => $(id).disabled = on);
+    document.querySelectorAll('#species button, #methods button, #roast button, .presets button').forEach(b => b.disabled = on);
+    $('panel-inputs').style.opacity = on ? .7 : 1;
+  }
+
+  // ---------- Audio cue ----------
+  let ac = null;
+  function unlockAudio() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; } }
+  function chime(kind) {
+    if (!ac) return;
+    const seq = kind === 'pour' ? [[880, 0], [1175, .12]] : kind === 'done' ? [[660, 0], [880, .14], [1320, .28]] : [[660, 0]];
+    seq.forEach(([f, dt]) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, ac.currentTime + dt);
+      g.gain.linearRampToValueAtTime(.25, ac.currentTime + dt + .01);
+      g.gain.exponentialRampToValueAtTime(.001, ac.currentTime + dt + .35);
+      o.connect(g).connect(ac.destination); o.start(ac.currentTime + dt); o.stop(ac.currentTime + dt + .4);
+    });
+    if (navigator.vibrate) navigator.vibrate(kind === 'pour' ? [80, 40, 80] : 60);
+  }
+  // ---------- Wake lock (keep the screen on at the counter) ----------
+  let wl = null;
+  async function requestWakeLock() { try { wl = await navigator.wakeLock?.request('screen'); } catch (e) { wl = null; } }
+  function releaseWakeLock() { try { wl?.release(); } catch (e) {} wl = null; }
+
+  // ---------- Brew log ----------
+  const LOG_KEY = 'dripdose.log';
+  function loadLog() { try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch (e) { return []; } }
+  function saveLog(entry) { try { const l = [entry, ...loadLog()].slice(0, 6); localStorage.setItem(LOG_KEY, JSON.stringify(l)); } catch (e) {} }
+  function renderLog() {
+    const l = loadLog();
+    $('log').innerHTML = l.length ? l.map(e => {
+      const d = new Date(e.when);
+      const when = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      return `<div class="log-row"><span>${e.method} · ${fmtG(e.dose)} g ${e.roast ? e.roast.toLowerCase() + ' ' : ''}${e.species}${e.temp ? ' · ' + e.temp + '°' : ''}</span><b>${e.mg} mg</b><span>${when}</span></div>`;
+    }).join('') : '<span class="empty">Finished brews land here.</span>';
+  }
+
+  // ---------- Wiring ----------
+  function setDose(v) {
+    v = Math.max(5, Math.min(120, Math.round(v * 2) / 2));
+    if (!Number.isFinite(v)) return;
+    state.dose = v; $('dose').value = v; renderAll();
+  }
+  $('dose').addEventListener('input', e => { const v = parseFloat(e.target.value); if (Number.isFinite(v) && v >= 5 && v <= 120) { state.dose = v; renderAll(); } });
+  $('dose').addEventListener('change', e => setDose(parseFloat(e.target.value) || state.dose));
+  document.querySelector('.presets').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setDose(parseFloat(b.dataset.dose)); });
+  $('bb-pause').addEventListener('click', () => $('start').click());
+  $('bb-start').addEventListener('click', () => { $('start').click(); $('panel-timer').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  // Fine-tune stays open on desktop where there is room; folds on phones.
+  $('fine').open = window.matchMedia('(min-width: 960px)').matches;
+  $('dose-up').addEventListener('click', () => setDose(state.dose + 1));
+  $('dose-down').addEventListener('click', () => setDose(state.dose - 1));
+  $('ratio').addEventListener('input', e => { state.ratio = parseFloat(e.target.value); renderAll(); });
+  $('species').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.species = b.dataset.species; renderAll(); });
+  $('roast').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.roast = b.dataset.roast; renderAll(); });
+  $('tuned-reset').addEventListener('click', () => { state.tune = { temp: 0, time: 0, ratio: 0 }; saveTune(); renderAll(); });
+
+  // Taste feedback → recommendation → apply to the next brew
+  let pendingTune = null;
+  $('taste-chips').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    document.querySelectorAll('#taste-chips button').forEach(x => x.setAttribute('aria-pressed', x === b));
+    const r = recipe(); const T = TASTE[b.dataset.taste];
+    pendingTune = { temp: state.tune.temp + (T.tune.temp || 0), time: state.tune.time + (T.tune.time || 0), ratio: state.tune.ratio + (T.tune.ratio || 0) };
+    pendingTune.temp = Math.max(-8, Math.min(6, pendingTune.temp)); pendingTune.time = Math.max(-30, Math.min(60, pendingTune.time)); pendingTune.ratio = Math.max(-4, Math.min(4, pendingTune.ratio));
+    const items = [];
+    if (T.tune.temp) { const nt = Math.max(80, Math.min(100, r.temp + T.tune.temp)); items.push(`Water <b>${r.temp} → ${nt} °C</b> (${cToF(nt)} °F)`); }
+    if (T.tune.time) { const first = r.stages.find(s => s.type === 'wait'); items.push(`${first ? first.name : 'Rest'} <b>${fmtT(first ? first.t[1] - first.t[0] : 0)} → ${fmtT((first ? first.t[1] - first.t[0] : 0) + T.tune.time)}</b>, total brew <b>${fmtT(r.total + T.tune.time)}</b>`); }
+    if (T.tune.ratio) { const nr = Math.max(10, Math.min(20, r.ratio + T.tune.ratio)); items.push(`Ratio <b>1:${r.ratio} → 1:${nr}</b> (${fmtG(state.dose * nr)} g water for ${fmtG(state.dose)} g)`); }
+    T.tips.forEach(t => items.push(t + ' (you control this at the grinder)'));
+    if (T.tune.temp || T.tune.time) items.push(`Caffeine will move a little too: ${T.tune.temp > 0 ? 'hotter, longer' : 'cooler, shorter'} contact ${T.tune.temp > 0 ? 'raises' : 'lowers'} it a few mg.`);
+    $('advice-why').textContent = T.why;
+    $('advice-list').innerHTML = items.map(i => `<li>${i}</li>`).join('');
+    const apply = $('advice-apply');
+    if (b.dataset.taste === 'good') { apply.textContent = 'Saved as your recipe'; apply.disabled = true; }
+    else { apply.textContent = 'Apply to next brew'; apply.disabled = false; }
+    $('taste-advice').hidden = false;
+  });
+  $('advice-apply').addEventListener('click', () => {
+    if (!pendingTune) return;
+    state.tune = pendingTune; saveTune();
+    $('advice-apply').textContent = 'Applied — ready for the next brew'; $('advice-apply').disabled = true;
+    renderAll(); toast('Next brew updated');
+  });
+  let toastTimer = 0;
+  function toast(msg) {
+    let el = document.querySelector('.toast');
+    if (!el) { el = document.createElement('div'); el.className = 'toast'; document.body.appendChild(el); }
+    el.textContent = msg; el.classList.add('on');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('on'), 2200);
+  }
+  // Offline + auto-update when served from a real site (GitHub Pages); harmless elsewhere.
+  if ('serviceWorker' in navigator && location.protocol === 'https:' && !location.hostname.endsWith('claude.ai')) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw && nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) toast('Update ready — reopen the app to get it'); });
+      });
+    }).catch(() => {});
+  }
+  $('methods').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.method = METHODS.find(m => m.id === b.dataset.method);
+    state.ratio = state.method.ratio; $('ratio').value = state.ratio;
+    renderAll();
+  });
+  $('start').addEventListener('click', () => { if (state.finished) reset(); state.running ? pause() : start(); });
+  $('reset').addEventListener('click', reset);
+  $('again').addEventListener('click', () => { reset(); start(); });
+  $('tweak').addEventListener('click', () => { reset(); $('dose').focus(); });
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && !['INPUT', 'BUTTON'].includes(document.activeElement.tagName)) { e.preventDefault(); $('start').click(); }
+    if (e.key === 'Escape' && $('result').classList.contains('on')) reset();
+  });
+
+  function renderAll() {
+    const r = recipe();
+    renderInputs(); renderTrack(r);
+    state.lastStage = -1;
+    renderTimer(r, state.running ? (performance.now() - state.startedAt) / 1000 : state.elapsed);
+  }
+  if ($('version').textContent.includes('__')) $('version').textContent = 'preview build';
+  renderMethods(); renderLog(); renderAll();
+})();
+</script>
+</body></html>
