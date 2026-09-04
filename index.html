@@ -274,6 +274,55 @@
   .log-row b { color: var(--bean); }
   .empty { color: var(--ink-3); font-size: 12.5px; }
 
+  /* ---------- brew mode ---------- */
+  .brewview {
+    position: fixed; inset: 0; z-index: 40; background: var(--bv-bg); color: var(--bv-ink);
+    display: grid; grid-template-rows: auto 1fr auto auto; justify-items: center;
+    gap: 12px; padding: max(14px, env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom));
+    --bv-bg: var(--bg); --bv-ink: var(--ink);
+    --ring-track: var(--bg-3); --ring-head: var(--ink); --ring-pour: var(--copper-2);
+    transition: background .4s;
+  }
+  .brewview[hidden] { display: none; }
+  .bv-mid { display: grid; align-content: center; justify-items: center; gap: 18px; }
+  /* the whole screen turns copper while you should be pouring */
+  .brewview.pour { --bv-bg: var(--copper); --bv-ink: var(--copper-ink);
+    --ring-track: color-mix(in srgb, var(--copper-ink) 20%, transparent);
+    --ring-pour: color-mix(in srgb, var(--copper-ink) 40%, transparent);
+    --ring-head: var(--copper-ink); }
+  .bv-head { width: 100%; max-width: 520px; display: flex; align-items: center; gap: 12px; }
+  .bv-x { width: 38px; height: 38px; border-radius: 50%; border: 0; font-size: 16px;
+    background: color-mix(in srgb, currentColor 12%, transparent); color: inherit; flex: none; }
+  .bv-recipe { font-family: var(--font-mono); font-size: 13px; opacity: .8; font-variant-numeric: tabular-nums; }
+
+  .ring-wrap { position: relative; width: min(78vw, 340px); aspect-ratio: 1; align-self: center; }
+  .ring-wrap svg { width: 100%; height: 100%; display: block; }
+  #ring-prog { transition: stroke-dasharray .12s linear; }
+  .ring-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 2px; text-align: center; }
+  .bv-eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; opacity: .75; }
+  .bv-count { font-family: var(--font-mono); font-size: clamp(52px, 17vw, 82px); font-weight: 700;
+    line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .bv-target { font-family: var(--font-mono); font-size: clamp(20px, 6vw, 28px); font-weight: 700;
+    font-variant-numeric: tabular-nums; margin-top: 4px; }
+
+  .bv-say { font-family: var(--font-display); font-size: clamp(20px, 5.5vw, 26px); font-weight: 700;
+    text-align: center; text-wrap: balance; line-height: 1.2; max-width: 20ch; }
+  .bv-next { font-size: 13px; opacity: .7; text-align: center; min-height: 19px; }
+  .bv-meta { display: flex; gap: 26px; font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+    padding: 12px 0; border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent); width: 100%;
+    max-width: 520px; justify-content: center; }
+  .bv-meta div { display: grid; justify-items: center; gap: 1px; }
+  .bv-meta span { font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; opacity: .6; }
+  .bv-meta b { font-size: 17px; }
+  .bv-controls { display: flex; gap: 14px; align-items: center; }
+  .bv-btn { width: 58px; height: 58px; border-radius: 50%; border: 0; display: grid; place-items: center;
+    background: color-mix(in srgb, currentColor 12%, transparent); color: inherit; }
+  .bv-btn svg { width: 22px; height: 22px; fill: currentColor; }
+  .bv-btn.primary { width: 76px; height: 76px; background: currentColor; }
+  .bv-btn.primary svg { width: 28px; height: 28px; fill: var(--bv-bg); }
+  .bv-btn:active { transform: scale(.94); }
+  @media (min-width: 700px) { .brewview { gap: 16px; } .ring-wrap { width: 340px; } }
+
   /* ---------- mobile brew bar + footer ---------- */
   .brewbar { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 15; padding: 10px 12px; border-radius: 18px; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
   .brewbar.live { background: var(--ink); color: var(--bg); border-color: transparent; }
@@ -450,6 +499,51 @@
   </div>
 </div>
 
+<!-- BREW MODE: takes over the screen once the timer is running -->
+<div class="brewview" id="brewview" hidden>
+  <div class="bv-head">
+    <button class="bv-x" id="bv-exit" aria-label="Leave brew mode">✕</button>
+    <div class="bv-recipe" id="bv-recipe"></div>
+  </div>
+
+  <div class="bv-mid">
+  <div class="ring-wrap">
+    <svg viewBox="0 0 240 240" id="ring" aria-hidden="true">
+      <g transform="rotate(-90 120 120)">
+        <circle cx="120" cy="120" r="104" fill="none" stroke="var(--ring-track)" stroke-width="16"/>
+        <g id="ring-segs"></g>
+        <circle id="ring-prog" cx="120" cy="120" r="104" fill="none" stroke="var(--ring-head)"
+                stroke-width="16" stroke-linecap="round" stroke-dasharray="0 653.45"/>
+      </g>
+      <circle id="ring-dot" cx="120" cy="16" r="7" fill="var(--ring-head)" stroke="var(--bv-bg)" stroke-width="3"/>
+    </svg>
+    <div class="ring-center">
+      <div class="bv-eyebrow" id="bv-eyebrow">Bloom</div>
+      <div class="bv-count" id="bv-count">0:00</div>
+      <div class="bv-target" id="bv-target">0 g</div>
+    </div>
+  </div>
+
+  <div class="bv-say" id="bv-say">Saturate all grounds, swirl gently</div>
+  <div class="bv-next" id="bv-next"></div>
+  </div>
+
+  <div class="bv-meta">
+    <div><span>elapsed</span><b id="bv-elapsed">0:00</b></div>
+    <div><span>remaining</span><b id="bv-left">3:30</b></div>
+    <div><span>caffeine</span><b id="bv-caf">0 mg</b></div>
+  </div>
+
+  <div class="bv-controls">
+    <button class="bv-btn" id="bv-back" aria-label="Previous stage">
+      <svg viewBox="0 0 24 24"><path d="M18 5v14L8 12zM6 5h2.4v14H6z"/></svg></button>
+    <button class="bv-btn primary" id="bv-pause" aria-label="Pause or resume">
+      <svg viewBox="0 0 24 24"><path d="M7 4h4v16H7zM13 4h4v16h-4z"/></svg></button>
+    <button class="bv-btn" id="bv-skip" aria-label="Next stage">
+      <svg viewBox="0 0 24 24"><path d="M6 5v14l10-7zM15.6 5H18v14h-2.4z"/></svg></button>
+  </div>
+</div>
+
 <!-- MOBILE BREW BAR: stays on screen while you scroll to the pour plan or caffeine chart -->
 <div class="brewbar" id="brewbar">
   <div class="bb-idle" id="bb-idle">
@@ -466,7 +560,7 @@
 
 <footer class="foot">
   <span>Add POR to your home screen: on iPhone tap Share → <b>Add to Home Screen</b>; on Android tap ⋮ → <b>Install app</b>. Works offline once installed.</span>
-  <span id="version">build 20260904203129</span>
+  <span id="version">build 20260904204313</span>
 </footer>
 
 <!-- RESULT CARD -->
@@ -618,7 +712,8 @@
     const total = stages[stages.length - 1].t[1];
     const cdry = state.dose * SPECIES[state.species].mgPerG;
     const k = state.method.k * roast.kMul * (1 + (temp - 93) * TEMP_K);
-    return { water, bloom, stages, total, cdry, k, temp, ratio, yieldMl: Math.max(0, water - state.dose * RETAINED_PER_G) };
+    const key = `${state.method.id}|${total}|${stages.map(s => s.t.join('-')).join(',')}`;
+    return { water, bloom, stages, total, cdry, k, temp, ratio, key, yieldMl: Math.max(0, water - state.dose * RETAINED_PER_G) };
   }
   function caffeineAt(t, r) {
     if (t <= 0) return 0;
@@ -826,40 +921,117 @@
     wrap.addEventListener('pointerleave', () => tip.classList.remove('on'));
   })();
 
+  // ---------- Brew ring ----------
+  const RING_R = 104, RING_C = 2 * Math.PI * RING_R;
+  function renderRing(r, t, idx) {
+    // stage segments, drawn once per recipe so you can see the shape of the whole brew
+    if (renderRing.key !== r.key) {
+      renderRing.key = r.key;
+      $('ring-segs').innerHTML = r.stages.map(s => {
+        const len = Math.max(0, (s.t[1] - s.t[0]) / r.total * RING_C - 3);
+        const off = -(s.t[0] / r.total * RING_C);
+        const col = s.type === 'pour' ? 'var(--ring-pour)' : 'transparent';
+        return `<circle cx="120" cy="120" r="${RING_R}" fill="none" stroke="${col}" stroke-width="16"
+                 stroke-dasharray="${len.toFixed(1)} ${(RING_C - len).toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/>`;
+      }).join('');
+    }
+    const p = Math.min(1, t / r.total) * RING_C;
+    $('ring-prog').setAttribute('stroke-dasharray', `${p.toFixed(1)} ${(RING_C - p).toFixed(1)}`);
+    const a = (Math.min(1, t / r.total) * 360 - 90) * Math.PI / 180;
+    $('ring-dot').setAttribute('cx', (120 + RING_R * Math.cos(a)).toFixed(1));
+    $('ring-dot').setAttribute('cy', (120 + RING_R * Math.sin(a)).toFixed(1));
+  }
+  function renderBrewView(r, t, idx) {
+    const s = r.stages[idx];
+    const pouring = !!(s && s.type === 'pour');
+    $('brewview').classList.toggle('pour', pouring && state.running);
+    $('bv-recipe').textContent = `${fmtG(state.dose)} g · ${state.method.name} · 1:${r.ratio} · ${r.temp} °C`;
+    if (!s) {
+      $('bv-eyebrow').textContent = 'Done'; $('bv-count').textContent = '0:00';
+      $('bv-target').textContent = `${fmtG(r.water)} g`; $('bv-say').textContent = 'Brew complete';
+      $('bv-next').textContent = '';
+    } else {
+      const verb = { pour: 'Pour now', wait: 'Wait', stir: 'Stir', press: 'Press' }[s.type];
+      $('bv-eyebrow').textContent = state.running ? verb : 'Paused';
+      $('bv-count').textContent = fmtT(Math.ceil(s.t[1] - t));
+      if (s.type === 'pour') {
+        const from = idx > 0 ? r.stages[idx - 1].cum : 0;
+        const p = Math.min(1, Math.max(0, (t - s.t[0]) / (s.t[1] - s.t[0])));
+        $('bv-target').textContent = `${fmtG(from + (s.target - from) * p)} → ${fmtG(s.target)} g`;
+      } else {
+        $('bv-target').textContent = `${fmtG(s.cum)} g on scale`;
+      }
+      $('bv-say').textContent = s.name + ' — ' + s.sub.charAt(0).toLowerCase() + s.sub.slice(1);
+      const nx = r.stages[idx + 1];
+      $('bv-next').textContent = nx ? `Next: ${nx.name} at ${fmtT(nx.t[0])}` : 'Last stage';
+    }
+    $('bv-elapsed').textContent = fmtT(t);
+    $('bv-left').textContent = fmtT(r.total - t);
+    $('bv-caf').textContent = Math.round(caffeineAt(t, r)) + ' mg';
+    $('bv-pause').innerHTML = state.running
+      ? '<svg viewBox="0 0 24 24"><path d="M7 4h4v16H7zM13 4h4v16h-4z"/></svg>'
+      : '<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>';
+    renderRing(r, t, idx);
+  }
+
   // ---------- Timer loop ----------
-  let raf = 0;
+  // Wall-clock based: elapsed comes from Date.now(), so the brew stays accurate
+  // even if the phone sleeps or the tab is backgrounded and rAF stops firing.
+  let ticker = 0;
+  const nowSec = () => Date.now() / 1000;
+  function elapsedNow() { return state.running ? nowSec() - state.startedAt : state.elapsed; }
   function tick() {
     const r = recipe();
-    const t = state.running ? (performance.now() - state.startedAt) / 1000 : state.elapsed;
+    const t = Math.min(elapsedNow(), r.total);
     const idx = stageIndexAt(t, r.stages);
-    if (state.running && idx !== state.lastStage && state.lastStage >= 0) chime(idx >= r.stages.length ? 'done' : r.stages[idx].type === 'pour' ? 'pour' : 'step');
-    renderTimer(r, Math.min(t, r.total));
-    if (state.running && t >= r.total) { finish(r); return; }
-    if (state.running) raf = requestAnimationFrame(tick);
+    if (state.running && idx !== state.lastStage && state.lastStage >= 0) {
+      chime(idx >= r.stages.length ? 'done' : r.stages[idx].type === 'pour' ? 'pour' : 'step');
+    }
+    renderTimer(r, t);
+    if (!$('brewview').hidden) renderBrewView(r, t, idx);
+    if (state.running && elapsedNow() >= r.total) finish(r);
   }
+  function startTicker() { clearInterval(ticker); ticker = setInterval(tick, 100); tick(); }
+  function stopTicker() { clearInterval(ticker); ticker = 0; }
+  // Re-sync the moment the tab or screen comes back
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && state.running) tick(); });
+
+  function enterBrewView() {
+    $('brewview').hidden = false; document.body.style.overflow = 'hidden';
+    tick(); $('bv-pause').focus();
+  }
+  function exitBrewView() { $('brewview').hidden = true; document.body.style.overflow = ''; }
+  function jumpTo(sec) {
+    const r = recipe();
+    const t = Math.max(0, Math.min(sec, r.total - 0.1));
+    state.elapsed = t; state.lastStage = stageIndexAt(t, r.stages);
+    if (state.running) state.startedAt = nowSec() - t;
+    tick();
+  }
+
   function start() {
     const r = recipe();
     unlockAudio();
     state.running = true; state.finished = false;
-    state.startedAt = performance.now() - state.elapsed * 1000;
+    state.startedAt = nowSec() - state.elapsed;
     state.lastStage = -1;
     $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg><span>Pause</span>';
     $('reset').disabled = false;
     $('status').textContent = 'Brewing';
     $('timer-hint').textContent = 'Pour when the cue turns copper';
     lockInputs(true); requestWakeLock();
-    cancelAnimationFrame(raf); tick();
+    enterBrewView(); startTicker();
   }
   function pause() {
-    state.elapsed = (performance.now() - state.startedAt) / 1000;
-    state.running = false; cancelAnimationFrame(raf);
+    state.elapsed = elapsedNow();
+    state.running = false; stopTicker(); tick();
     $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Resume</span>';
     $('status').textContent = 'Paused'; $('cue').classList.remove('pour');
     releaseWakeLock();
   }
   function reset() {
     state.running = false; state.elapsed = 0; state.finished = false; state.lastStage = -1;
-    cancelAnimationFrame(raf);
+    stopTicker(); exitBrewView();
     $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span>';
     $('reset').disabled = true; $('status').textContent = 'Ready';
     $('timer-hint').textContent = 'Press start when your kettle is ready';
@@ -869,7 +1041,7 @@
   }
   function finish(r) {
     state.running = false; state.finished = true; state.elapsed = r.total;
-    cancelAnimationFrame(raf); releaseWakeLock();
+    stopTicker(); exitBrewView(); releaseWakeLock();
     $('status').textContent = 'Done';
     $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span>';
     const caf = caffeineAt(r.total, r);
@@ -947,7 +1119,21 @@
   $('dose').addEventListener('change', e => setDose(parseFloat(e.target.value) || state.dose));
   document.querySelector('.presets').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setDose(parseFloat(b.dataset.dose)); });
   $('bb-pause').addEventListener('click', () => $('start').click());
-  $('bb-start').addEventListener('click', () => { $('start').click(); $('panel-timer').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  $('bb-start').addEventListener('click', () => $('start').click());
+  // brew-mode controls
+  $('bv-pause').addEventListener('click', () => state.running ? pause() : start());
+  $('bv-exit').addEventListener('click', () => { if (state.running) pause(); exitBrewView(); });
+  $('bv-skip').addEventListener('click', () => {
+    const r = recipe(), i = stageIndexAt(elapsedNow(), r.stages);
+    if (i >= r.stages.length - 1) { finish(r); return; }
+    jumpTo(r.stages[i + 1].t[0]); chime('step');
+  });
+  $('bv-back').addEventListener('click', () => {
+    const r = recipe(), t = elapsedNow(), i = stageIndexAt(t, r.stages);
+    const s = r.stages[Math.min(i, r.stages.length - 1)];
+    // within 2s of a stage start, go to the one before it
+    jumpTo(t - s.t[0] < 2 && i > 0 ? r.stages[i - 1].t[0] : s.t[0]);
+  });
   // Fine-tune stays open on desktop where there is room; folds on phones.
   $('fine').open = window.matchMedia('(min-width: 960px)').matches;
   $('dose-up').addEventListener('click', () => setDose(state.dose + 1));
@@ -1019,7 +1205,8 @@
     const r = recipe();
     renderInputs(); renderTrack(r);
     state.lastStage = -1;
-    renderTimer(r, state.running ? (performance.now() - state.startedAt) / 1000 : state.elapsed);
+    renderTimer(r, Math.min(elapsedNow(), r.total));
+    if (!$('brewview').hidden) renderBrewView(r, Math.min(elapsedNow(), r.total), stageIndexAt(elapsedNow(), r.stages));
   }
   if ($('version').textContent.includes('__')) $('version').textContent = 'preview build';
   renderMethods(); renderLog(); renderAll();
