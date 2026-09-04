@@ -1,6 +1,6 @@
 {
-  "name": "Drip Dose",
-  "short_name": "Drip Dose",
+  "name": "POR",
+  "short_name": "POR",
   "description": "Pour-over calculator, brew timer and caffeine tracker",
   "start_url": "./",
   "scope": "./",
