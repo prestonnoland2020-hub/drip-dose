@@ -220,22 +220,14 @@
 
   /* ---------- caffeine ---------- */
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 959px) { .stats { grid-template-columns: 1fr 1fr; } .stats .stat.hero { grid-column: 1 / -1; } }
   .stat { padding: 10px 12px; border-radius: 10px; background: var(--bg); display: grid; gap: 2px; }
   .stat .v { font-family: var(--font-mono); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.1; }
   .stat .v em { font-style: normal; font-size: 13px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
   .stat.hero { background: var(--bean-2); }
   .stat.hero .v { color: var(--bean); font-size: 30px; }
-  .chart-wrap { position: relative; }
-  .chart-wrap svg { width: 100%; height: auto; display: block; }
-  .chart-tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-family: var(--font-mono); font-size: 11.5px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -110%); opacity: 0; transition: opacity .12s; }
-  .chart-tip.on { opacity: 1; }
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--bean); }
-  .legend i.dash { border-top-style: dashed; opacity: .6; }
-  .legend i.band { width: 14px; height: 10px; border: 0; background: var(--copper-2); border-radius: 2px; }
-  .model-note { margin: 12px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
-  .model-note code { font-family: var(--font-mono); color: var(--ink-2); }
+  .caf-note { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-3); line-height: 1.55; }
+  .caf-note b { color: var(--ink-2); font-weight: 600; }
 
   /* ---------- result overlay ---------- */
   .result { position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 70%, transparent); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 20px; z-index: 20; }
@@ -492,22 +484,13 @@
 
       <!-- CAFFEINE -->
       <section class="panel" id="panel-caffeine" aria-label="Caffeine extraction">
-        <div class="panel-h"><h2>Caffeine extraction</h2><span class="hint">Live, from first water contact</span></div>
+        <div class="panel-h"><h2>Caffeine</h2><span class="hint" id="caf-hint"></span></div>
         <div class="stats">
-          <div class="stat hero"><span class="eyebrow">In the cup</span><div class="v" id="caf-now">0<em>mg</em></div></div>
-          <div class="stat"><span class="eyebrow">Extracted</span><div class="v" id="caf-pct">0<em>%</em></div></div>
-          <div class="stat"><span class="eyebrow">Available in dose</span><div class="v" id="caf-max">240<em>mg</em></div></div>
+          <div class="stat hero"><span class="eyebrow">This brew</span><div class="v" id="caf-total">0<em>mg</em></div></div>
+          <div class="stat"><span class="eyebrow">Per 240 ml mug</span><div class="v" id="caf-cup">0<em>mg</em></div></div>
+          <div class="stat"><span class="eyebrow">Of 400 mg daily</span><div class="v" id="caf-daily">0<em>%</em></div></div>
         </div>
-        <div class="chart-wrap" id="chart-wrap">
-          <svg id="chart" viewBox="0 0 640 260" role="img" aria-label="Caffeine extracted over brew time"></svg>
-          <div class="chart-tip" id="chart-tip"></div>
-        </div>
-        <div class="legend">
-          <span><i></i> extracted so far</span>
-          <span><i class="dash"></i> projected curve</span>
-          <span><i class="band"></i> pouring</span>
-        </div>
-        <p class="model-note">Model: <code>C(t) = C<sub>dry</sub> · E<sub>max</sub> · (1 − e<sup>−kt</sup>)</code>. Caffeine is highly water-soluble, so most of it leaves the grounds during the bloom and first pour; later pours mostly add body and volume. <span id="model-k"></span></p>
+        <p class="caf-note" id="caf-note"></p>
         <div class="log">
           <span class="eyebrow">Recent brews</span>
           <div class="log-rows" id="log"></div>
@@ -589,7 +572,7 @@
 
 <footer class="foot">
   <span>Add POR to your home screen: on iPhone tap Share → <b>Add to Home Screen</b>; on Android tap ⋮ → <b>Install app</b>. Works offline once installed.</span>
-  <span id="version">build 20260904204812</span>
+  <span id="version">build 20260904205122</span>
 </footer>
 
 <!-- RESULT CARD -->
@@ -807,11 +790,10 @@
     $('sum-temp').innerHTML = `${r.temp}<em>°C</em> <em>${cToF(r.temp)}°F</em>`;
     $('sum-time').textContent = fmtT(r.total);
     $('sum-yield').innerHTML = `≈${Math.round(r.yieldMl)}<em>ml</em>`;
-    $('caf-max').innerHTML = `${Math.round(r.cdry)}<em>mg</em>`;
+    renderCaffeine(r);
     const tuned = tuneSummary();
     $('tuned').hidden = !tuned;
     $('tuned-text').innerHTML = `Tuned from your last cup: <b>${tuned}</b>`;
-    $('model-k').textContent = `For ${state.method.name}, ${ROAST[state.roast].name.toLowerCase()} roast at ${r.temp} °C: k = ${r.k.toFixed(4)}/s, Emax = ${Math.round(state.method.emax * 100)}% — ${Math.round((1 - Math.exp(-r.k * 60)) * 100)}% of extractable caffeine is out by 1:00.`;
     document.querySelectorAll('#species button').forEach(b => b.setAttribute('aria-pressed', b.dataset.species === state.species));
     document.querySelectorAll('#roast button').forEach(b => b.setAttribute('aria-pressed', b.dataset.roast === state.roast));
     document.querySelectorAll('#methods button').forEach(b => b.setAttribute('aria-pressed', b.dataset.method === state.method.id));
@@ -897,58 +879,18 @@
     $('track-fill').style.width = pct + '%';
     $('track-head').style.left = `calc(${pct}% - 1px)`;
     if (idx !== state.lastStage) { renderStages(r, idx); state.lastStage = idx; }
-    // stats
-    const caf = caffeineAt(t, r);
-    $('caf-now').innerHTML = `${round(caf, caf < 10 ? 1 : 0)}<em>mg</em>`;
-    $('caf-pct').innerHTML = `${Math.round(caf / r.cdry * 100)}<em>%</em>`;
-    renderChart(r, t);
   }
 
-  // ---------- Chart ----------
-  const CH = { w: 640, h: 260, l: 60, r: 16, t: 18, b: 34 };
-  function renderChart(r, t) {
-    const yMax = Math.ceil(r.cdry / 50) * 50 || 50;
-    const x = s => CH.l + (s / r.total) * (CH.w - CH.l - CH.r);
-    const y = mg => CH.t + (1 - mg / yMax) * (CH.h - CH.t - CH.b);
-    const pts = (to) => { const a = []; const n = 120; for (let i = 0; i <= n; i++) { const s = to * i / n; a.push(`${x(s).toFixed(1)},${y(caffeineAt(s, r)).toFixed(1)}`); } return a.join(' '); };
-    const bands = r.stages.filter(s => s.type === 'pour').map(s =>
-      `<rect x="${x(s.t[0])}" y="${CH.t}" width="${x(s.t[1]) - x(s.t[0])}" height="${CH.h - CH.t - CH.b}" fill="var(--copper-2)"/>`).join('');
-    const yTicks = []; for (let v = 0; v <= yMax; v += yMax / 4) yTicks.push(v);
-    const grid = yTicks.map(v => `<line x1="${CH.l}" x2="${CH.w - CH.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/>
-      <text x="${CH.l - 8}" y="${y(v) + 4}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="var(--font-mono)">${Math.round(v)}${v === yMax ? ' mg' : ''}</text>`).join('');
-    const step = r.total <= 240 ? 30 : 60;
-    let xt = '';
-    for (let s = 0; s <= r.total; s += step) xt += `<text x="${x(s)}" y="${CH.h - 12}" text-anchor="middle" font-size="11" fill="var(--ink-3)" font-family="var(--font-mono)">${fmtT(s)}</text>`;
-    const nowMg = caffeineAt(t, r);
-    const live = t > 0 ? `<polyline points="${pts(t)}" fill="none" stroke="var(--bean)" stroke-width="2.5" stroke-linejoin="round"/>
-      <circle cx="${x(t)}" cy="${y(nowMg)}" r="5" fill="var(--bean)" stroke="var(--bg-2)" stroke-width="2"/>
-      <text x="${Math.min(x(t) + 8, CH.w - CH.r - 60)}" y="${Math.max(CH.t + 12, y(nowMg) - 10)}" font-size="12" font-weight="700" fill="var(--ink)" font-family="var(--font-mono)">${Math.round(nowMg)} mg</text>` : '';
-    const plateau = r.cdry * state.method.emax;
-    $('chart').innerHTML = `
-      ${bands}${grid}
-      <line x1="${CH.l}" x2="${CH.w - CH.r}" y1="${y(plateau)}" y2="${y(plateau)}" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="2 4"/>
-      <text x="${CH.w - CH.r}" y="${y(plateau) - 5}" text-anchor="end" font-size="11" fill="var(--ink-3)" font-family="var(--font-mono)">max ${Math.round(plateau)} mg</text>
-      <polyline points="${pts(r.total)}" fill="none" stroke="var(--bean)" stroke-width="1.5" stroke-dasharray="4 4" opacity=".5"/>
-      ${live}${xt}
-      <rect id="chart-hit" x="${CH.l}" y="${CH.t}" width="${CH.w - CH.l - CH.r}" height="${CH.h - CH.t - CH.b}" fill="transparent"/>`;
+  // ---------- Caffeine readout ----------
+  function renderCaffeine(r) {
+    const total = caffeineAt(r.total, r);
+    const perCup = total / Math.max(1, r.yieldMl / 240);
+    $('caf-total').innerHTML = `${Math.round(total)}<em>mg</em>`;
+    $('caf-cup').innerHTML = `${Math.round(perCup)}<em>mg</em>`;
+    $('caf-daily').innerHTML = `${Math.round(total / 400 * 100)}<em>%</em>`;
+    $('caf-hint').textContent = `${SPECIES[state.species].name} · ${ROAST[state.roast].name.toLowerCase()} roast`;
+    $('caf-note').innerHTML = `<b>${fmtG(state.dose)} g</b> of ${ROAST[state.roast].name.toLowerCase()}-roast ${SPECIES[state.species].name} holds about <b>${Math.round(r.cdry)} mg</b>. A ${fmtT(r.total)} ${state.method.name} pulls out roughly <b>${Math.round(total / r.cdry * 100)}%</b> of it — and most of that leaves the grounds during the bloom and first pour, not the later ones.`;
   }
-  // hover tooltip (reads the model, not the DOM)
-  (() => {
-    const wrap = $('chart-wrap'), svg = $('chart'), tip = $('chart-tip');
-    const onMove = e => {
-      const r = recipe(); const box = svg.getBoundingClientRect();
-      const px = (e.clientX - box.left) / box.width * CH.w;
-      const s = Math.max(0, Math.min(r.total, (px - CH.l) / (CH.w - CH.l - CH.r) * r.total));
-      const mg = caffeineAt(s, r);
-      tip.textContent = `${fmtT(s)} → ${Math.round(mg)} mg (${Math.round(mg / r.cdry * 100)}%)`;
-      const yMax = Math.ceil(r.cdry / 50) * 50 || 50;
-      const yy = (CH.t + (1 - mg / yMax) * (CH.h - CH.t - CH.b)) / CH.h * box.height;
-      const xx = (CH.l + (s / r.total) * (CH.w - CH.l - CH.r)) / CH.w * box.width;
-      tip.style.left = xx + 'px'; tip.style.top = yy + 'px'; tip.classList.add('on');
-    };
-    wrap.addEventListener('pointermove', onMove);
-    wrap.addEventListener('pointerleave', () => tip.classList.remove('on'));
-  })();
 
   // ---------- Brew ring ----------
   const RING_R = 104, RING_C = 2 * Math.PI * RING_R;
