@@ -87,7 +87,7 @@
   @media (max-width: 959px) {
     .col-left, .col-right { display: contents; }
     /* phone order: recipe → timer → plan → caffeine, so Start and the cue sit right under the dose */
-    #panel-inputs { order: 1; } #panel-timer { order: 2; } #panel-plan { order: 3; } #panel-caffeine { order: 4; }
+    #panel-inputs { order: 1; } #panel-out { order: 2; } #panel-log { order: 3; }
     .app { padding: 12px 12px 20px; }
     .grid { gap: 12px; }
     .panel { padding: 16px 14px; border-radius: 16px; }
@@ -98,12 +98,7 @@
     .stepper { width: 52px; height: 36px; }
     .seg button { min-height: 44px; }
     .presets button { min-height: 44px; }
-    .cue-title { font-size: 30px; }
-    .clock .big { font-size: 72px; }
-    .controls .btn { min-height: 52px; }
     body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
-    .stats { grid-template-columns: 1fr 1fr; }
-    .stats .stat.hero { grid-column: 1 / -1; }
     .result { padding: 0; align-items: flex-end; }
     .card { width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); animation: sheet .3s cubic-bezier(.2,.9,.3,1); }
     .card .actions .btn { padding: 12px 10px; font-size: 15px; white-space: nowrap; }
@@ -156,19 +151,23 @@
   .fine[open] .chev { transform: rotate(-135deg); }
   .fine[open] summary { border-bottom: 1px solid var(--line); }
   .fine > :last-child { margin-bottom: 14px; }
+  #planwrap { margin-top: 16px; }
+  #planwrap .stages { margin: 12px 0 14px; }
   .fine .range-row { margin-top: 12px; }
   .field-lab { font-weight: 600; font-size: 13px; margin-top: 16px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .field-lab span { color: var(--ink-3); font-weight: 500; }
   .field-lab.block { display: grid; gap: 2px; }
   .field-lab.block span { font-size: 12.5px; line-height: 1.4; }
-  .summary { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); padding-top: 12px; gap: 8px; }
-  @media (max-width: 420px) { .summary { grid-template-columns: repeat(2, 1fr); } }
+  .answer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 460px) { .answer { grid-template-columns: repeat(2, 1fr); } }
+  .answer div { background: var(--bg); border-radius: 12px; padding: 12px 13px; display: grid; gap: 2px; }
+  .answer div.caf { background: var(--bean-2); }
+  .answer b { font-family: var(--font-mono); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.15; }
+  .answer div.caf b { color: var(--bean); }
+  .answer b em { font-style: normal; font-size: 12px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
   .tuned { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--copper-2); font-size: 12.5px; color: var(--ink-2); }
   .tuned b { color: var(--ink); }
   .linkbtn { border: 0; background: transparent; color: var(--copper); font-weight: 700; font-size: 12.5px; padding: 2px 4px; }
-  .summary div { display: grid; gap: 2px; }
-  .summary b { font-family: var(--font-mono); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .summary b em { font-style: normal; font-size: 12px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
 
   /* ---------- plan ---------- */
   .stages { display: grid; gap: 6px; }
@@ -184,48 +183,17 @@
   .stage.active.pour { background: var(--copper-2); border-color: var(--copper); }
   .stage.active .t { color: var(--ink); font-weight: 700; }
 
-  /* ---------- timer ---------- */
-  #panel-timer { position: relative; overflow: hidden; }
-  .timer-cue { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; background: var(--bg-3); margin-bottom: 14px; transition: background .25s; min-height: 92px; }
-  .timer-cue.pour { background: var(--copper); color: var(--copper-ink); }
-  .timer-cue.pour .cue-sub, .timer-cue.pour .eyebrow { color: color-mix(in srgb, var(--copper-ink) 78%, transparent); }
-  .timer-cue.pour .cue-target { color: var(--copper-ink); }
-  .cue-title { font-family: var(--font-display); font-size: 26px; font-weight: 800; line-height: 1.05; letter-spacing: -.015em; text-wrap: balance; margin: 2px 0; }
-  .cue-sub { font-size: 13.5px; color: var(--ink-2); }
-  .cue-target { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-  .cue-target b { display: block; font-size: 32px; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
-  .cue-target small { display: block; font-size: 11px; opacity: .8; margin-top: 4px; letter-spacing: .04em; text-transform: uppercase; }
-  .clock { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; }
-  .clock .big { font-family: var(--font-mono); font-size: clamp(56px, 10vw, 84px); font-weight: 700; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-  .clock .big .ms { font-size: .38em; color: var(--ink-3); font-weight: 500; letter-spacing: 0; }
-  .clock .side { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink-3); display: grid; gap: 3px; }
-  .clock .side b { color: var(--ink); font-size: 16px; }
-  .track { position: relative; height: 22px; margin: 14px 0 6px; border-radius: 6px; overflow: hidden; background: var(--bg-3); }
-  .track .seg-bar { position: absolute; top: 0; bottom: 0; }
-  .track .seg-bar.pour { background: var(--copper-2); }
-  .track .seg-bar.wait { background: transparent; }
-  .track .seg-bar.press, .track .seg-bar.stir { background: var(--bean-2); }
-  .track .seg-bar + .seg-bar { border-left: 2px solid var(--bg-2); }
-  .track .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: color-mix(in srgb, var(--ink) 18%, transparent); }
-  .track .head { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink); left: 0; }
-  .track-ticks { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); }
-  .controls { display: flex; gap: 8px; margin-top: 14px; }
-  .btn { border: 1px solid var(--line); background: var(--bg-2); border-radius: 12px; padding: 12px 18px; font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+  /* ---------- buttons ---------- */
+  .btn { border: 1px solid var(--line); background: var(--bg-2); border-radius: 12px; padding: 12px 18px;
+    font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; color: var(--ink); }
   .btn:hover { background: var(--bg-3); }
-  .btn.primary { background: var(--copper); border-color: var(--copper); color: var(--copper-ink); flex: 1; justify-content: center; font-size: 16px; }
+  .btn.primary { background: var(--copper); border-color: var(--copper); color: var(--copper-ink); justify-content: center; }
   .btn.primary:hover { filter: brightness(1.06); }
   .btn.ghost { color: var(--ink-2); }
   .btn:disabled { opacity: .4; cursor: default; }
   .btn svg { width: 16px; height: 16px; fill: currentColor; }
 
   /* ---------- caffeine ---------- */
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-  @media (max-width: 959px) { .stats { grid-template-columns: 1fr 1fr; } .stats .stat.hero { grid-column: 1 / -1; } }
-  .stat { padding: 10px 12px; border-radius: 10px; background: var(--bg); display: grid; gap: 2px; }
-  .stat .v { font-family: var(--font-mono); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.1; }
-  .stat .v em { font-style: normal; font-size: 13px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
-  .stat.hero { background: var(--bean-2); }
-  .stat.hero .v { color: var(--bean); font-size: 30px; }
   .caf-note { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-3); line-height: 1.55; }
   .caf-note b { color: var(--ink-2); font-weight: 600; }
 
@@ -263,7 +231,7 @@
   .btn.small:disabled { opacity: 1; background: var(--bg-3); border-color: var(--bg-3); color: var(--ink-2); }
   @media (max-height: 760px) { .result { align-items: flex-start; overflow-y: auto; } }
 
-  .log { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+  #panel-log { display: grid; gap: 8px; }
   .log-rows { display: grid; gap: 4px; margin-top: 8px; }
   .log-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; font-size: 12.5px; color: var(--ink-2); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   .log-row b { color: var(--bean); }
@@ -350,7 +318,7 @@
   .bb-target { font-family: var(--font-mono); font-size: 18px; font-weight: 700; }
   .bb-btn { width: 40px; height: 40px; border-radius: 12px; border: 0; background: color-mix(in srgb, currentColor 18%, transparent); color: inherit; display: grid; place-items: center; }
   .bb-btn svg { width: 16px; height: 16px; fill: currentColor; }
-  @media (min-width: 960px) { .brewbar { display: none !important; } }
+  @media (min-width: 960px) { .brewbar { left: 50%; transform: translateX(-50%); width: min(760px, calc(100% - 32px)); } }
   .foot { max-width: 1120px; margin: 0 auto; padding: 0 20px 30px; display: flex; justify-content: space-between; gap: 16px; font-size: 12px; color: var(--ink-3); line-height: 1.5; }
   .foot b { color: var(--ink-2); }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(10px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13.5px; font-weight: 600; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 30; }
@@ -365,19 +333,17 @@
 <div class="app">
   <header class="top">
     <div class="brand">
-      <svg viewBox="0 0 120 120" aria-hidden="true" style="color:var(--copper)">
-        <mask id="porMask"><rect width="120" height="120" fill="#fff"/>
-          <path d="M70 86 C80 78 90 73 99 71 C95 81 86 89 74 91 Z" fill="#000"/>
-          <circle cx="24.5" cy="44" r="2.2" fill="#000"/></mask>
-        <g mask="url(#porMask)" fill="currentColor">
-          <path d="M66 88 L62 114 M84 88 L88 114" stroke="currentColor" stroke-width="4.6" stroke-linecap="round" fill="none"/>
-          <ellipse cx="74" cy="78" rx="25" ry="17"/>
-          <path d="M92 68 C101 63 108 59 113 55 C112 74 104 86 92 90 Z"/>
-          <path d="M68 76 C63 58 60 44 56 34 C51 21 35 15 26 23 C20 29 19 38 23 46" stroke="currentColor" stroke-width="10" stroke-linecap="round" fill="none"/>
-          <circle cx="25" cy="46" r="6.4"/><path d="M20 50 L5 65 L28 55 Z"/>
-        </g>
-        <circle cx="6" cy="78" r="4.2" fill="currentColor"/>
-      </svg>
+      <svg viewBox="0 0 248 248" aria-hidden="true" style="color:var(--copper)"><g transform="translate(-75,376) scale(0.1,-0.1)" fill="currentColor">
+<path d="M760 3753 c0 -11 1223 -1233 1234 -1233 4 0 6 145 3 323 -4 294 -6
+329 -26 397 -37 124 -96 225 -181 310 -88 87 -173 140 -285 177 -79 27 -84 27
+-412 31 -183 2 -333 0 -333 -5z"/>
+<path d="M2535 3586 c-156 -49 -269 -183 -297 -350 -46 -275 206 -530 480
+-487 95 15 199 69 257 133 101 113 115 171 115 480 l0 238 -257 -1 c-179 0
+-270 -4 -298 -13z"/>
+<path d="M1365 1890 c341 -341 623 -620 627 -620 5 0 8 278 8 617 l0 618 620
+-620 620 -620 0 313 c0 351 -6 402 -66 528 -88 187 -244 318 -449 380 -56 17
+-128 18 -1020 21 l-960 3 620 -620z"/>
+</g></svg>
       <div>
         <h1>POR</h1>
         <p>Weigh in grams, pour on cue, know your caffeine.</p>
@@ -388,9 +354,9 @@
 
   <div class="grid">
     <div class="col-left">
-      <!-- INPUTS -->
-      <section class="panel" id="panel-inputs" aria-label="Recipe inputs">
-        <div class="panel-h"><h2>Recipe</h2><span class="hint">Everything recalculates as you type</span></div>
+      <!-- WHAT YOU HAVE -->
+      <section class="panel" id="panel-inputs" aria-label="Your coffee">
+        <div class="panel-h"><h2>Your coffee</h2><span class="hint">Weigh the beans, pick the gear</span></div>
         <div class="dose">
           <div class="dose-field">
             <label for="dose">Coffee dose</label>
@@ -401,7 +367,7 @@
           </div>
           <div class="steppers">
             <button class="stepper" id="dose-up" aria-label="Increase dose by one gram">+</button>
-            <button class="stepper" id="dose-down" aria-label="Decrease dose by one gram">−</button>
+            <button class="stepper" id="dose-down" aria-label="Decrease dose by one gram">&minus;</button>
           </div>
         </div>
 
@@ -412,22 +378,20 @@
           <button data-dose="45">45 g <small>3 cups</small></button>
         </div>
 
-        <div class="field-lab block">Brew method <span id="method-hint"></span></div>
+        <div class="field-lab">Brew method <span id="method-hint"></span></div>
         <div class="methods" role="group" aria-label="Brew method" id="methods"></div>
 
         <details class="fine" id="fine">
-          <summary><span class="eyebrow">Fine-tune</span><span class="fine-sum" id="fine-sum">1:16 · Arabica · Medium roast</span><span class="chev" aria-hidden="true"></span></summary>
+          <summary><span class="eyebrow">Fine-tune</span><span class="fine-sum" id="fine-sum"></span><span class="chev" aria-hidden="true"></span></summary>
           <div class="range-row">
             <div class="lab"><label for="ratio">Brew ratio</label><output id="ratio-out">1 : 16</output></div>
             <input id="ratio" type="range" min="10" max="20" step="0.5" value="16">
           </div>
-
-          <div class="field-lab">Bean species <span id="species-hint">≈ 12 mg caffeine per gram</span></div>
+          <div class="field-lab">Bean species <span id="species-hint"></span></div>
           <div class="seg" role="group" aria-label="Bean species" id="species">
             <button data-species="arabica" aria-pressed="true">Arabica <small>~1.2% caffeine</small></button>
             <button data-species="robusta" aria-pressed="false">Robusta <small>~2.2% caffeine</small></button>
           </div>
-
           <div class="field-lab">Roast level <span id="roast-hint"></span></div>
           <div class="seg" role="group" aria-label="Roast level" id="roast">
             <button data-roast="light" aria-pressed="false">Light <small>hotter water</small></button>
@@ -435,66 +399,34 @@
             <button data-roast="dark" aria-pressed="false">Dark <small>cooler water</small></button>
           </div>
         </details>
+      </section>
+    </div>
 
-        <div class="summary">
-          <div><span class="eyebrow">Water</span><b id="sum-water">320<em>g</em></b></div>
-          <div><span class="eyebrow">Kettle</span><b id="sum-temp">93<em>°C</em></b></div>
-          <div><span class="eyebrow">Brew time</span><b id="sum-time">3:30</b></div>
-          <div><span class="eyebrow">Yield</span><b id="sum-yield">≈290<em>ml</em></b></div>
+    <div class="col-right">
+      <!-- WHAT YOU GET -->
+      <section class="panel" id="panel-out" aria-label="Your brew">
+        <div class="panel-h"><h2>Your brew</h2><span class="hint" id="out-hint"></span></div>
+        <div class="answer">
+          <div><span class="eyebrow">Water</span><b id="sum-water"></b></div>
+          <div><span class="eyebrow">Kettle</span><b id="sum-temp"></b></div>
+          <div><span class="eyebrow">Time</span><b id="sum-time"></b></div>
+          <div class="caf"><span class="eyebrow">Caffeine</span><b id="caf-total"></b></div>
         </div>
         <div class="tuned" id="tuned" hidden>
           <span id="tuned-text"></span>
           <button id="tuned-reset" class="linkbtn">Reset</button>
         </div>
-      </section>
-
-      <!-- PLAN -->
-      <section class="panel" id="panel-plan" aria-label="Pour plan">
-        <div class="panel-h"><h2>Pour plan</h2><span class="hint" id="plan-hint">Cumulative scale targets</span></div>
-        <div class="stages" id="stages"></div>
-      </section>
-    </div>
-
-    <div class="col-right">
-      <!-- TIMER -->
-      <section class="panel" id="panel-timer" aria-label="Brew timer">
-        <div class="panel-h"><h2>Brew timer</h2><span class="hint" id="timer-hint">Press start when your kettle is ready</span></div>
-        <div class="timer-cue" id="cue" aria-live="polite">
-          <div>
-            <div class="eyebrow" id="cue-eyebrow">Up first</div>
-            <div class="cue-title" id="cue-title">Bloom</div>
-            <div class="cue-sub" id="cue-sub"></div>
-          </div>
-          <div class="cue-target"><b id="cue-target">0</b><small id="cue-target-lab">g on scale</small></div>
-        </div>
-        <div class="clock">
-          <div class="big" id="clock">0:00<span class="ms">.0</span></div>
-          <div class="side">
-            <span>stage ends in</span><b id="stage-left">0:45</b>
-            <span>total</span><b id="total-left">3:30</b>
-          </div>
-        </div>
-        <div class="track" id="track"><div class="fill" id="track-fill"></div><div class="head" id="track-head"></div></div>
-        <div class="track-ticks" id="track-ticks"></div>
-        <div class="controls">
-          <button class="btn primary" id="start"><svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span></button>
-          <button class="btn ghost" id="reset" disabled>Reset</button>
-        </div>
-      </section>
-
-      <!-- CAFFEINE -->
-      <section class="panel" id="panel-caffeine" aria-label="Caffeine extraction">
-        <div class="panel-h"><h2>Caffeine</h2><span class="hint" id="caf-hint"></span></div>
-        <div class="stats">
-          <div class="stat hero"><span class="eyebrow">This brew</span><div class="v" id="caf-total">0<em>mg</em></div></div>
-          <div class="stat"><span class="eyebrow">Per 240 ml mug</span><div class="v" id="caf-cup">0<em>mg</em></div></div>
-          <div class="stat"><span class="eyebrow">Of 400 mg daily</span><div class="v" id="caf-daily">0<em>%</em></div></div>
-        </div>
         <p class="caf-note" id="caf-note"></p>
-        <div class="log">
-          <span class="eyebrow">Recent brews</span>
-          <div class="log-rows" id="log"></div>
-        </div>
+
+        <details class="fine" id="planwrap">
+          <summary><span class="eyebrow">The pours</span><span class="fine-sum" id="plan-sum"></span><span class="chev" aria-hidden="true"></span></summary>
+          <div class="stages" id="stages"></div>
+        </details>
+      </section>
+
+      <section class="panel" id="panel-log" aria-label="Recent brews">
+        <span class="eyebrow">Recent brews</span>
+        <div class="log-rows" id="log"></div>
       </section>
     </div>
   </div>
@@ -572,7 +504,7 @@
 
 <footer class="foot">
   <span>Add POR to your home screen: on iPhone tap Share → <b>Add to Home Screen</b>; on Android tap ⋮ → <b>Install app</b>. Works offline once installed.</span>
-  <span id="version">build 20260904205122</span>
+  <span id="version">build 20260904205851</span>
 </footer>
 
 <!-- RESULT CARD -->
@@ -789,7 +721,8 @@
     $('sum-water').innerHTML = `${fmtG(r.water)}<em>g</em>`;
     $('sum-temp').innerHTML = `${r.temp}<em>°C</em> <em>${cToF(r.temp)}°F</em>`;
     $('sum-time').textContent = fmtT(r.total);
-    $('sum-yield').innerHTML = `≈${Math.round(r.yieldMl)}<em>ml</em>`;
+    $('out-hint').textContent = `≈${Math.round(r.yieldMl)} ml in the cup`;
+    $('plan-sum').textContent = r.stages.length + ' steps · ' + r.stages.filter(x => x.type === 'pour').length + ' pour' + (r.stages.filter(x => x.type === 'pour').length > 1 ? 's' : '');
     renderCaffeine(r);
     const tuned = tuneSummary();
     $('tuned').hidden = !tuned;
@@ -797,7 +730,6 @@
     document.querySelectorAll('#species button').forEach(b => b.setAttribute('aria-pressed', b.dataset.species === state.species));
     document.querySelectorAll('#roast button').forEach(b => b.setAttribute('aria-pressed', b.dataset.roast === state.roast));
     document.querySelectorAll('#methods button').forEach(b => b.setAttribute('aria-pressed', b.dataset.method === state.method.id));
-    $('plan-hint').textContent = state.method.kind === 'Percolation' ? 'Cumulative scale targets' : 'Single pour, then time';
   }
 
   // ---------- Render: plan ----------
@@ -811,58 +743,12 @@
     }).join('');
   }
 
-  // ---------- Render: timer track ----------
-  function renderTrack(r) {
-    const track = $('track');
-    track.querySelectorAll('.seg-bar').forEach(e => e.remove());
-    const fill = $('track-fill');
-    r.stages.forEach(s => {
-      const d = document.createElement('div');
-      d.className = `seg-bar ${s.type}`;
-      d.style.left = (s.t[0] / r.total * 100) + '%';
-      d.style.width = ((s.t[1] - s.t[0]) / r.total * 100) + '%';
-      track.insertBefore(d, fill);
-    });
-    const ticks = [];
-    const step = r.total <= 240 ? 30 : 60;
-    for (let t = 0; t <= r.total; t += step) ticks.push(t);
-    if (ticks[ticks.length - 1] !== r.total) ticks.push(r.total);
-    $('track-ticks').innerHTML = ticks.map(t => `<span>${fmtT(t)}</span>`).join('');
-  }
-
-  // ---------- Render: live timer ----------
+  // ---------- Render: sticky bar + stage list ----------
   function renderTimer(r, t) {
     const idx = stageIndexAt(t, r.stages);
     const s = r.stages[idx];
-    const cue = $('cue');
-    cue.className = 'timer-cue' + (s && s.type === 'pour' && state.running ? ' pour' : '');
-    if (!s) {
-      $('cue-eyebrow').textContent = 'Done'; $('cue-title').textContent = 'Serve';
-      $('cue-sub').textContent = 'Brew complete.'; $('cue-target').textContent = fmtG(r.water); $('cue-target-lab').textContent = 'g final';
-      $('stage-left').textContent = '0:00';
-    } else {
-      const started = state.running || state.elapsed > 0;
-      const verb = { pour: 'Pour', wait: 'Wait', stir: 'Stir', press: 'Press' }[s.type];
-      $('cue-eyebrow').textContent = !started ? `Heat water to ${r.temp} °C / ${cToF(r.temp)} °F · up first` : s.type === 'pour' ? `Pour now · ${fmtT(s.t[1] - t)} left` : `${verb} · next in ${fmtT(s.t[1] - t)}`;
-      $('cue-title').textContent = s.name;
-      const next = r.stages[idx + 1];
-      $('cue-sub').textContent = s.sub + (next ? ` · then ${next.name.toLowerCase()} at ${fmtT(next.t[0])}` : '');
-      if (s.type === 'pour') {
-        // interpolate the live scale target so the user can pace the pour
-        const from = idx > 0 ? r.stages[idx - 1].cum : 0;
-        const p = Math.min(1, Math.max(0, (t - s.t[0]) / (s.t[1] - s.t[0])));
-        $('cue-target').textContent = fmtG(from + (s.target - from) * (started ? p : 0));
-        $('cue-target-lab').textContent = `→ ${fmtG(s.target)} g`;
-      } else {
-        $('cue-target').textContent = fmtG(s.cum);
-        $('cue-target-lab').textContent = 'g on scale';
-      }
-      $('stage-left').textContent = fmtT(s.t[1] - t);
-    }
-    $('total-left').textContent = fmtT(r.total - t);
-    // mirror into the mobile brew bar
-    const bb = $('brewbar');
     const live = state.running || (state.elapsed > 0 && !state.finished);
+    const bb = $('brewbar');
     $('bb-live').hidden = !live; $('bb-idle').hidden = live;
     bb.classList.toggle('live', live);
     bb.classList.toggle('pour', !!(s && s.type === 'pour' && state.running));
@@ -870,26 +756,28 @@
     $('bb-recipe-sub').textContent = `${state.method.name} · ${fmtT(r.total)} · ≈${Math.round(caffeineAt(r.total, r))} mg`;
     $('bb-clock').textContent = fmtT(Math.floor(t));
     $('bb-title').textContent = s ? s.name : 'Done';
-    $('bb-sub').textContent = s ? `${s.type === 'pour' ? 'Pour now · ' : ''}${fmtT(s.t[1] - t)} left` + (r.stages[idx + 1] ? ` · next: ${r.stages[idx + 1].name}` : '') : '';
-    $('bb-target').textContent = $('cue-target').textContent + ' g';
-    $('bb-pause').innerHTML = state.running ? '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>' : '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>';
-    const tenths = Math.floor((t % 1) * 10);
-    $('clock').innerHTML = `${fmtT(Math.floor(t))}<span class="ms">.${tenths}</span>`;
-    const pct = Math.min(100, t / r.total * 100);
-    $('track-fill').style.width = pct + '%';
-    $('track-head').style.left = `calc(${pct}% - 1px)`;
+    $('bb-sub').textContent = s
+      ? `${s.type === 'pour' ? 'Pour now · ' : ''}${fmtT(s.t[1] - t)} left` + (r.stages[idx + 1] ? ` · next: ${r.stages[idx + 1].name}` : '')
+      : '';
+    let target;
+    if (!s) target = fmtG(r.water);
+    else if (s.type === 'pour') {
+      const from = idx > 0 ? r.stages[idx - 1].cum : 0;
+      const p = Math.min(1, Math.max(0, (t - s.t[0]) / (s.t[1] - s.t[0])));
+      target = fmtG(from + (s.target - from) * p);
+    } else target = fmtG(s.cum);
+    $('bb-target').textContent = target + ' g';
+    $('bb-pause').innerHTML = state.running
+      ? '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>'
+      : '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>';
     if (idx !== state.lastStage) { renderStages(r, idx); state.lastStage = idx; }
   }
 
   // ---------- Caffeine readout ----------
   function renderCaffeine(r) {
     const total = caffeineAt(r.total, r);
-    const perCup = total / Math.max(1, r.yieldMl / 240);
     $('caf-total').innerHTML = `${Math.round(total)}<em>mg</em>`;
-    $('caf-cup').innerHTML = `${Math.round(perCup)}<em>mg</em>`;
-    $('caf-daily').innerHTML = `${Math.round(total / 400 * 100)}<em>%</em>`;
-    $('caf-hint').textContent = `${SPECIES[state.species].name} · ${ROAST[state.roast].name.toLowerCase()} roast`;
-    $('caf-note').innerHTML = `<b>${fmtG(state.dose)} g</b> of ${ROAST[state.roast].name.toLowerCase()}-roast ${SPECIES[state.species].name} holds about <b>${Math.round(r.cdry)} mg</b>. A ${fmtT(r.total)} ${state.method.name} pulls out roughly <b>${Math.round(total / r.cdry * 100)}%</b> of it — and most of that leaves the grounds during the bloom and first pour, not the later ones.`;
+    $('caf-note').innerHTML = `<b>${fmtG(state.dose)} g</b> of ${ROAST[state.roast].name.toLowerCase()}-roast ${SPECIES[state.species].name} holds about <b>${Math.round(r.cdry)} mg</b>, and a ${fmtT(r.total)} ${state.method.name} pulls out roughly <b>${Math.round(total / r.cdry * 100)}%</b> of it — most of that during the bloom and first pour, not the later ones.`;
   }
 
   // ---------- Brew ring ----------
@@ -986,26 +874,17 @@
     state.running = true; state.finished = false;
     state.startedAt = nowSec() - state.elapsed;
     state.lastStage = -1;
-    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg><span>Pause</span>';
-    $('reset').disabled = false;
-    $('status').textContent = 'Brewing';
-    $('timer-hint').textContent = 'Pour when the cue turns copper';
     lockInputs(true); requestWakeLock();
     enterBrewView(); startTicker();
   }
   function pause() {
     state.elapsed = elapsedNow();
     state.running = false; stopTicker(); tick();
-    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Resume</span>';
-    $('status').textContent = 'Paused'; $('cue').classList.remove('pour');
     releaseWakeLock();
   }
   function reset() {
     state.running = false; state.elapsed = 0; state.finished = false; state.lastStage = -1;
     stopTicker(); exitBrewView();
-    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span>';
-    $('reset').disabled = true; $('status').textContent = 'Ready';
-    $('timer-hint').textContent = 'Press start when your kettle is ready';
     $('result').classList.remove('on');
     lockInputs(false); releaseWakeLock();
     renderAll();
@@ -1013,8 +892,6 @@
   function finish(r) {
     state.running = false; state.finished = true; state.elapsed = r.total;
     stopTicker(); exitBrewView(); releaseWakeLock();
-    $('status').textContent = 'Done';
-    $('start').innerHTML = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg><span>Start brew</span>';
     const caf = caffeineAt(r.total, r);
     const sp = SPECIES[state.species];
     $('res-sub').textContent = `${state.method.name} · ${fmtG(state.dose)} g ${ROAST[state.roast].name.toLowerCase()} ${sp.name} · 1:${r.ratio} · ${r.temp} °C`;
@@ -1031,7 +908,6 @@
     const eq = [
       `≈ ${round(caf / 63, 1)}× a single espresso (63 mg)`,
       `${Math.round(perCup)} mg per 240 ml cup`,
-      `${Math.round(caf / 400 * 100)}% of the 400 mg daily guideline`,
       caf > 150 ? 'Big cup — maybe split it' : caf < 60 ? 'Gentle — a good afternoon brew' : 'Right in the classic mug range',
     ];
     $('res-equiv').innerHTML = eq.map(e => `<span>${e}</span>`).join('');
@@ -1042,6 +918,7 @@
   }
   function lockInputs(on) {
     ['dose', 'ratio', 'dose-up', 'dose-down'].forEach(id => $(id).disabled = on);
+    $('panel-out').style.opacity = on ? .7 : 1;
     document.querySelectorAll('#species button, #methods button, #roast button, .presets button').forEach(b => b.disabled = on);
     $('panel-inputs').style.opacity = on ? .7 : 1;
   }
@@ -1089,8 +966,8 @@
   $('dose').addEventListener('input', e => { const v = parseFloat(e.target.value); if (Number.isFinite(v) && v >= 5 && v <= 120) { state.dose = v; renderAll(); } });
   $('dose').addEventListener('change', e => setDose(parseFloat(e.target.value) || state.dose));
   document.querySelector('.presets').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setDose(parseFloat(b.dataset.dose)); });
-  $('bb-pause').addEventListener('click', () => $('start').click());
-  $('bb-start').addEventListener('click', () => $('start').click());
+  $('bb-pause').addEventListener('click', () => state.running ? pause() : start());
+  $('bb-start').addEventListener('click', () => { if (state.finished) reset(); start(); });
   // brew-mode controls
   $('bv-pause').addEventListener('click', () => state.running ? pause() : start());
   // Leaving mid-brew asks first — an accidental tap should never bin the brew.
@@ -1118,7 +995,7 @@
     jumpTo(t - s.t[0] < 2 && i > 0 ? r.stages[i - 1].t[0] : s.t[0]);
   });
   // Fine-tune stays open on desktop where there is room; folds on phones.
-  $('fine').open = window.matchMedia('(min-width: 960px)').matches;
+  $('fine').open = $('planwrap').open = window.matchMedia('(min-width: 960px)').matches;
   $('dose-up').addEventListener('click', () => setDose(state.dose + 1));
   $('dose-down').addEventListener('click', () => setDose(state.dose - 1));
   $('ratio').addEventListener('input', e => { state.ratio = parseFloat(e.target.value); renderAll(); });
@@ -1175,12 +1052,12 @@
     state.ratio = state.method.ratio; $('ratio').value = state.ratio;
     renderAll();
   });
-  $('start').addEventListener('click', () => { if (state.finished) reset(); state.running ? pause() : start(); });
-  $('reset').addEventListener('click', reset);
   $('again').addEventListener('click', () => { reset(); start(); });
   $('tweak').addEventListener('click', () => { reset(); $('dose').focus(); });
   document.addEventListener('keydown', e => {
-    if (e.code === 'Space' && !['INPUT', 'BUTTON'].includes(document.activeElement.tagName)) { e.preventDefault(); $('start').click(); }
+    if (e.code === 'Space' && !['INPUT', 'BUTTON'].includes(document.activeElement.tagName)) {
+      e.preventDefault(); if (state.finished) reset(); state.running ? pause() : start();
+    }
     if (e.key === 'Escape') {
       if (!$('bv-confirm').hidden) closeAsk();
       else if (!$('brewview').hidden) askLeave();
@@ -1190,7 +1067,7 @@
 
   function renderAll() {
     const r = recipe();
-    renderInputs(); renderTrack(r);
+    renderInputs();
     state.lastStage = -1;
     renderTimer(r, Math.min(elapsedNow(), r.total));
     if (!$('brewview').hidden) renderBrewView(r, Math.min(elapsedNow(), r.total), stageIndexAt(elapsedNow(), r.stages));
