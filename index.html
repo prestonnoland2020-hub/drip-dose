@@ -23,6 +23,7 @@
     --bean: #5A3E2B;
     --bean-2: #E6D9CC;
     --good: #2E7D4F;
+    --danger: #B3261E;
     --shadow: 0 1px 2px rgba(28,25,23,.06), 0 8px 24px rgba(28,25,23,.08);
     --radius: 14px;
     --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
@@ -38,6 +39,7 @@
       --water: #6FA8D6; --water-2: #1E2E3B;
       --bean: #C9A27E; --bean-2: #3A2E25;
       --good: #6CC08F;
+      --danger: #E8877F;
       --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
       color-scheme: dark;
     }
@@ -49,6 +51,7 @@
     --water: #6FA8D6; --water-2: #1E2E3B;
     --bean: #C9A27E; --bean-2: #3A2E25;
     --good: #6CC08F;
+    --danger: #E8877F;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
     color-scheme: dark;
   }
@@ -323,6 +326,21 @@
   .bv-btn:active { transform: scale(.94); }
   @media (min-width: 700px) { .brewview { gap: 16px; } .ring-wrap { width: 340px; } }
 
+  .bv-confirm { position: fixed; inset: 0; z-index: 50; background: color-mix(in srgb, var(--ink) 45%, transparent);
+    display: grid; align-items: end; justify-items: center; padding: 0; backdrop-filter: blur(3px); }
+  .bv-confirm[hidden] { display: none; }
+  .bv-sheet { width: min(440px, 100%); background: var(--bg-2); color: var(--ink); border-radius: 22px 22px 0 0;
+    padding: 22px 18px calc(20px + env(safe-area-inset-bottom)); display: grid; gap: 9px;
+    animation: sheet .26s cubic-bezier(.2,.9,.3,1); }
+  @media (min-width: 700px) { .bv-confirm { align-items: center; } .bv-sheet { border-radius: 20px; } }
+  .bv-sheet h3 { font-family: var(--font-display); font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -.01em; }
+  .bv-sheet p { margin: 0 0 8px; color: var(--ink-2); font-size: 13.5px; }
+  .bv-sheet .btn { width: 100%; justify-content: center; flex-direction: column; gap: 1px; padding: 13px 16px; }
+  .bv-sheet .btn small { font-weight: 500; font-size: 11.5px; color: var(--ink-3); }
+  .bv-sheet .btn.primary small { color: color-mix(in srgb, var(--copper-ink) 75%, transparent); }
+  .bv-sheet .btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+  .bv-sheet .btn.danger small { color: color-mix(in srgb, var(--danger) 70%, transparent); }
+
   /* ---------- mobile brew bar + footer ---------- */
   .brewbar { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 15; padding: 10px 12px; border-radius: 18px; background: var(--bg-2); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
   .brewbar.live { background: var(--ink); color: var(--bg); border-color: transparent; }
@@ -534,6 +552,17 @@
     <div><span>caffeine</span><b id="bv-caf">0 mg</b></div>
   </div>
 
+  <!-- shown when you tap the X mid-brew -->
+  <div class="bv-confirm" id="bv-confirm" hidden>
+    <div class="bv-sheet" role="dialog" aria-modal="true" aria-labelledby="bv-conf-t">
+      <h3 id="bv-conf-t">Leave the brew?</h3>
+      <p id="bv-conf-sub">Paused at 0:00 — nothing is lost unless you cancel.</p>
+      <button class="btn primary" id="bv-resume">Resume brewing</button>
+      <button class="btn" id="bv-minimize">Back to recipe <small>keeps the timer paused</small></button>
+      <button class="btn danger" id="bv-cancel">Cancel brew <small>discards this brew</small></button>
+    </div>
+  </div>
+
   <div class="bv-controls">
     <button class="bv-btn" id="bv-back" aria-label="Previous stage">
       <svg viewBox="0 0 24 24"><path d="M18 5v14L8 12zM6 5h2.4v14H6z"/></svg></button>
@@ -560,7 +589,7 @@
 
 <footer class="foot">
   <span>Add POR to your home screen: on iPhone tap Share → <b>Add to Home Screen</b>; on Android tap ⋮ → <b>Install app</b>. Works offline once installed.</span>
-  <span id="version">build 20260904204313</span>
+  <span id="version">build 20260904204812</span>
 </footer>
 
 <!-- RESULT CARD -->
@@ -1122,7 +1151,19 @@
   $('bb-start').addEventListener('click', () => $('start').click());
   // brew-mode controls
   $('bv-pause').addEventListener('click', () => state.running ? pause() : start());
-  $('bv-exit').addEventListener('click', () => { if (state.running) pause(); exitBrewView(); });
+  // Leaving mid-brew asks first — an accidental tap should never bin the brew.
+  function askLeave() {
+    if (state.running) pause();
+    const r = recipe(), t = Math.min(elapsedNow(), r.total);
+    $('bv-conf-sub').textContent = `Paused at ${fmtT(t)} — nothing is lost unless you cancel.`;
+    $('bv-confirm').hidden = false; $('bv-resume').focus();
+  }
+  const closeAsk = () => { $('bv-confirm').hidden = true; };
+  $('bv-exit').addEventListener('click', askLeave);
+  $('bv-resume').addEventListener('click', () => { closeAsk(); start(); });
+  $('bv-minimize').addEventListener('click', () => { closeAsk(); exitBrewView(); });
+  $('bv-cancel').addEventListener('click', () => { closeAsk(); reset(); toast('Brew cancelled'); });
+  $('bv-confirm').addEventListener('click', e => { if (e.target === $('bv-confirm')) closeAsk(); });
   $('bv-skip').addEventListener('click', () => {
     const r = recipe(), i = stageIndexAt(elapsedNow(), r.stages);
     if (i >= r.stages.length - 1) { finish(r); return; }
@@ -1198,7 +1239,11 @@
   $('tweak').addEventListener('click', () => { reset(); $('dose').focus(); });
   document.addEventListener('keydown', e => {
     if (e.code === 'Space' && !['INPUT', 'BUTTON'].includes(document.activeElement.tagName)) { e.preventDefault(); $('start').click(); }
-    if (e.key === 'Escape' && $('result').classList.contains('on')) reset();
+    if (e.key === 'Escape') {
+      if (!$('bv-confirm').hidden) closeAsk();
+      else if (!$('brewview').hidden) askLeave();
+      else if ($('result').classList.contains('on')) reset();
+    }
   });
 
   function renderAll() {
