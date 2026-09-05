@@ -41,7 +41,7 @@ export async function render({ params }) {
   $('save').onclick = async () => {
     $('save').disabled = true
     const feedback = [...v.feedback]
-    const next = nextTime(feedback, { grind_microns: brew.ai_recipe?.grind_microns, grinder: brew.grinder || me?.equipment?.grinder || null, temp_c: brew.temp_c, ratio: Number(brew.ratio || (brew.water_g / brew.dose_g)) })
+    const next = nextTime(feedback, { grind_microns: brew.ai_recipe?.grind_microns, grinder: brew.grinder || me?.equipment?.grinder || null, grind_setting: $('grind').value.trim() || brew.grind_setting || null, temp_c: brew.temp_c, ratio: Number(brew.ratio || (brew.water_g / brew.dose_g)) })
     const patch = { rating: v.rating, ...v.dims, notes: $('notes').value.trim() || null, feedback, next_time: next, public: $('pub').checked,
       grind_setting: $('grind').value.trim() || null, grinder: brew.grinder || me?.equipment?.grinder || null, brewer: me?.equipment?.brewer || null }
     for (const k in patch) if (DIMS.some(([d]) => d === k) && !patch[k]) patch[k] = null

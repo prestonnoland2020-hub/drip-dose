@@ -24,7 +24,7 @@ export async function render() {
     <div class="top"><button class="back" id="leave">${icon(I.x)} Cancel</button><div class="eyebrow">${esc(M.name)} · ${esc(String(r.dose).replace(/\.0$/, ''))} g → ${Math.round(r.water)} g · ${r.temp_note ? esc(r.temp_note) : r.temp + ' °C'}</div></div>
     <div class="ring"><svg viewBox="0 0 240 240"><circle class="track" cx="120" cy="120" r="${R}"/>${steps.filter(s => s.type === 'pour').map(s => arc(s, r.total)).join('')}<circle class="prog" id="prog" cx="120" cy="120" r="${R}" stroke-dasharray="0 ${C}"/></svg>
       <div class="mid"><div class="clock num" id="clock">0:00</div><div class="stage" id="stage">Ready</div><div class="target" id="target"></div></div></div>
-    <div class="cue" id="cue"><b>Tap start when the water's on</b><small>Kettle at ${r.temp_note ? esc(r.temp_note).toLowerCase() : r.temp + ' °C · ' + Math.round(r.temp * 9 / 5 + 32) + ' °F'}, ${esc(String(r.dose).replace(/\.0$/, ''))} g ground ${r.grind_setting ? `at <b>${esc(r.grinder.brand)} ${esc(r.grind_setting)}</b>` : esc((r.grind_label || '').toLowerCase())}</small></div>
+    <div class="cue" id="cue"><b>Tap start when the water's on</b><small>Kettle at ${r.temp_note ? esc(r.temp_note).toLowerCase() : r.temp + ' °C · ' + Math.round(r.temp * 9 / 5 + 32) + ' °F'}, ${esc(String(r.dose).replace(/\.0$/, ''))} g ground ${r.grind_setting ? `with the <b>${esc(r.grinder.brand)} on ${esc(r.grind_setting)}</b>` : esc((r.grind_label || '').toLowerCase())}</small></div>
     <div class="next" id="next"></div>
     <div class="ctrl"><button class="btn" id="skip" disabled>${icon(I.skip)} Skip</button><button class="btn primary big" id="main" style="min-height:56px">${icon(I.play)} Start</button><button class="btn" id="log" disabled>Log</button></div>
     <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost sm" id="end" hidden>End early</button></div>
@@ -38,7 +38,16 @@ export async function render() {
       const s = steps[i]
       if (s) {
         el.stage.textContent = s.label
-        el.target.innerHTML = s.type === 'pour' && s.target != null ? `${Math.round(s.target)} <small>g on the scale</small>` : s.target != null && s.type !== 'action' ? `<small>${Math.round(s.target)} g total</small>` : ''
+        // The number on the scale should be moving with you: during a pour it climbs from where
+        // the last pour ended to this pour's target; between pours it holds at what's in the bed.
+        const before = steps.slice(0, i).reduce((acc, x) => x.target != null ? x.target : acc, 0)
+        if (s.type === 'pour' && s.target != null) {
+          const f = Math.max(0, Math.min(1, (t - s.t[0]) / Math.max(1, s.t[1] - s.t[0])))
+          const now = before + (s.target - before) * f
+          el.target.innerHTML = `${Math.round(now)} <small>g → ${Math.round(s.target)} g</small>`
+        } else if (s.type !== 'action' && before > 0) {
+          el.target.innerHTML = `<small>${Math.round(before)} g in the bed</small>`
+        } else el.target.innerHTML = ''
         const left = s.t[1] - t
         el.next.textContent = i < steps.length - 1 ? `Next: ${steps[i + 1].label}${steps[i + 1].target != null && steps[i + 1].type === 'pour' ? ` to ${Math.round(steps[i + 1].target)} g` : ''} in ${fmtT(left)}` : `Finishing in ${fmtT(left)}`
       } else {

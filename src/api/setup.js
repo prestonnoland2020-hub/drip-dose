@@ -58,3 +58,4 @@ export async function search(q) {
   return hits.slice(0, 12)
 }
 export async function identify(imageB64) { return fn('identify-gear', { image: imageB64 }) }
+export async function lookup(query) { grinders = null; return fn('identify-gear', { query }) }

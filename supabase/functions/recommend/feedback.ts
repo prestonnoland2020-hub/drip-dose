@@ -52,8 +52,14 @@ export function nextTime(feedback: string[], last: any = {}) {
     const clicks = Math.abs(r.grindPct) >= 0.08 ? '2' : '1–2'
     const from = last.grind_microns ?? null
     const to = from ? Math.round(from * (1 + r.grindPct)) : null
-    change = { var: 'grind', from, to, pct: r.grindPct,
-      text: last.grinder ? `Grind ${clicks} clicks ${dir} on your ${last.grinder}` : `Grind one step ${dir}${to ? ` (about ${to} µm)` : ''}` }
+    const steps = Math.abs(r.grindPct) >= 0.08 ? 2 : 1
+    const cur = last.grind_setting != null && last.grind_setting !== '' ? parseFloat(last.grind_setting) : NaN
+    const stepSize = Number(last.grind_step) || 1
+    const finerIsLower = last.finest_is_low !== false
+    const nextSetting = Number.isFinite(cur) ? Math.round((cur + (dir === 'finer' ? -1 : 1) * (finerIsLower ? 1 : -1) * steps * stepSize) * 100) / 100 : null
+    change = { var: 'grind', from, to, pct: r.grindPct, setting_from: Number.isFinite(cur) ? cur : null, setting_to: nextSetting,
+      text: last.grinder && nextSetting != null ? `Set your ${last.grinder} to ${String(nextSetting).replace(/\.0$/, '')} (was ${String(cur).replace(/\.0$/, '')}, ${steps === 1 ? 'one step' : 'two steps'} ${dir})`
+        : last.grinder ? `Grind ${clicks} clicks ${dir} on your ${last.grinder}` : `Grind one step ${dir}` }
   } else if (r.var === 'temp') {
     const from = last.temp_c ?? null, to = from ? from + r.temp : null
     change = { var: 'temp', from, to, delta: r.temp, text: `Water ${r.temp > 0 ? '+' : ''}${r.temp} °C${from ? ` (${from} → ${to} °C)` : ''}` }

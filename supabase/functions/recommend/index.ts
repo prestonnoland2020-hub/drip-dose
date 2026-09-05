@@ -165,15 +165,15 @@ Deno.serve(async (req) => {
   const recipe = {
     method, method_name: M.name, dose, water, ratio, temp,
     temp_note: M.cold ? 'Room temperature' : null,
-    grind_label: base.grind, grind_microns: grindUm, bloom: base.bloom,
+    grind_label: grinder ? (ref?.grind_label ?? base.grind) : base.grind, grind_microns: grindUm, bloom: base.bloom,
     roast_level: base.roast_level, roast_assumed: base.roast_assumed,
     steps, total,
     grind_hint: grinderLabel ? `${base.grind} on your ${grinderLabel}` : base.grind,
-    grinder: grinder ? { id: grinder.id, brand: grinder.brand, model: grinder.model, scale: grinder.scale, note: grinder.note } : grinderLabel ? { name: grinderLabel } : null,
+    grinder: grinder ? { id: grinder.id, brand: grinder.brand, model: grinder.model, scale: grinder.scale, note: grinder.note, dial: grinder.dial, verified: grinder.verified !== false } : grinderLabel ? { name: grinderLabel } : null,
     grind_setting: grinder ? fmtSetting(grinder, settingFor(grinder, grindUm)) : null,
     grind_setting_num: grinder ? settingFor(grinder, grindUm) : null,
   }
-  if (grinder) sources.push({ kind: 'grinder', text: `${grinderName(grinder)} grind chart (approximate — burrs vary by a step or two)` })
+  if (grinder) sources.push({ kind: 'grinder', text: `${grinderName(grinder)} grind chart${grinder.verified === false ? ' — estimated, unverified' : ''} (approximate — burrs vary by a step or two)` })
   if (!why.length) why.push(`${M.name} published ranges${ref ? `` : ''}, set for ${base.basis.replace(/^.*set for /, '')}.`)
 
   return json({

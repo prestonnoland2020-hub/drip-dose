@@ -48,9 +48,19 @@ async function doSearch() {
   const q = $('q').value; const el = $('results')
   const hits = await setup.search(q)
   el.innerHTML = hits.map((h, i) => `<button class="card row" data-i="${i}" style="text-align:left;padding:12px 14px"><div style="flex:1"><b>${esc(h.name)}</b><div class="small muted">${esc(h.sub)}</div></div>${icon(I.plus)}</button>`).join('')
-    + (q.trim().length > 2 ? `<button class="card row" data-free="1" style="text-align:left;padding:12px 14px"><div style="flex:1"><b>Add “${esc(q.trim())}”</b><div class="small muted">Not in the catalogue — POR will still say finer or coarser</div></div>${icon(I.plus)}</button>` : '')
+    + (q.trim().length > 2 && !hits.some(h => h.kind === 'grinder') ? `<button class="card row" data-lookup="1" style="text-align:left;padding:12px 14px"><div style="flex:1"><b>Look up “${esc(q.trim())}”</b><div class="small muted">Not in the catalogue yet — POR works out its dial and saves it for everyone</div></div>${icon(I.spark)}</button>` : '')
+    + (q.trim().length > 2 ? `<button class="card row" data-free="1" style="text-align:left;padding:12px 14px"><div style="flex:1"><b>Add “${esc(q.trim())}” by name</b><div class="small muted">No settings — POR will still say finer or coarser</div></div>${icon(I.plus)}</button>` : '')
   el.querySelectorAll('[data-i]').forEach(b => b.onclick = async () => { await addHit(hits[+b.dataset.i]); $('q').value = ''; el.innerHTML = '' })
   el.querySelector('[data-free]')?.addEventListener('click', () => kindSheet(q.trim()))
+  el.querySelector('[data-lookup]')?.addEventListener('click', async () => {
+    const p = sheet(`<h3>Looking up “${esc(q.trim())}”…</h3><div class="skeleton" style="min-height:80px"></div>`)
+    try {
+      const out = await setup.lookup(q.trim()); const g = out.grinder
+      p.innerHTML = `<div class="eyebrow">Found</div><h2 style="margin-top:4px">${esc(g.brand)} ${esc(g.model)}</h2><p class="muted small">${esc(g.dial || '')}</p><p class="small muted">Its chart is an estimate until your ratings confirm it.</p><div class="grid2"><button class="btn" id="no">Not it</button><button class="btn primary" id="yes">${icon(I.check)} That's mine</button></div>`
+      p.querySelector('#yes').onclick = async () => { await setup.add({ kind: 'grinder', catalog_id: g.id, name: `${g.brand} ${g.model}` }); closeSheet(); toast('Grinder added'); $('q').value = ''; el.innerHTML = ''; repaint() }
+      p.querySelector('#no').onclick = closeSheet
+    } catch (err) { p.innerHTML = `<h3>Couldn't find it</h3><p class="muted">${esc(err.detail?.message || 'Try the full brand and model, or add it by name.')}</p><button class="btn" id="c">Close</button>`; p.querySelector('#c').onclick = closeSheet }
+  })
 }
 async function addHit(h) {
   await setup.add(h.kind === 'grinder' ? { kind: 'grinder', catalog_id: h.catalog_id, name: h.name } : h.kind === 'brewer' ? { kind: 'brewer', method: h.method, name: h.name } : { kind: h.kind, name: h.name })
