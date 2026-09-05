@@ -1259,6 +1259,8 @@
         const msg = out.error === 'limit_reached'   ? `That's your ${out.scan_limit} free scans used.`
           : out.error === 'not_recognised'  ? out.message
           : out.error === 'not_configured'  ? 'Scanning is not switched on yet.'
+          : /401|Incorrect API key|invalid_api_key/i.test(out.detail || '')
+                                            ? 'Scanning is not connected yet — the API key is being rejected.'
           : out.error === 'vision_failed'   ? `The reader failed (${out.model}). Not your photo — tell Claude.`
           : out.error === 'unparseable'     ? 'The reader replied in the wrong format. Not your photo — tell Claude.'
           : out.error === 'image_too_large' ? 'That photo is too big — try again.'

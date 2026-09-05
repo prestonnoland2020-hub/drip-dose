@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
   if (!key) return json({ error: 'not_configured', message: 'Scanning is not switched on yet.' }, 503)
   const scanModel = Deno.env.get('SCAN_MODEL') || 'gpt-4o'
   const researchModel = Deno.env.get('RESEARCH_MODEL') || 'gpt-5.6-luna'
+  let usedScanModel = scanModel
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
   const { data: userData, error: userErr } =
@@ -178,14 +179,27 @@ Deno.serve(async (req) => {
   if (image.length > 8_000_000) return json({ error: 'image_too_large', message: 'Resize before uploading.' }, 413)
 
   // ---- stage 1: read the label -------------------------------------------
-  let parsed: any
-  try {
-    const text = await readLabel(key, image, mediaType, scanModel)
-    const m = String(text).replace(/^```(?:json)?|```$/gm, '').trim().match(/\{[\s\S]*\}/)
-    if (!m) throw new Error('no json in reply')
-    parsed = JSON.parse(m[0])
-  } catch (e) {
-    return json({ error: 'vision_failed', model: scanModel, detail: String(e).slice(0, 300) }, 502)
+  // Try the configured model, then fall back through known-good ones. Model
+  // availability varies by account, and a scan should not die over a name.
+  const candidates = [...new Set([scanModel, 'gpt-4o', 'gpt-4o-mini', 'gpt-5.6-luna'])]
+  let parsed: any = null
+  const attempts: { model: string; error: string }[] = []
+  for (const m0 of candidates) {
+    try {
+      const text = await readLabel(key, image, mediaType, m0)
+      const m = String(text).replace(/^```(?:json)?|```$/gm, '').trim().match(/\{[\s\S]*\}/)
+      if (!m) throw new Error('no json in reply: ' + String(text).slice(0, 120))
+      parsed = JSON.parse(m[0]); usedScanModel = m0
+      break
+    } catch (e) {
+      attempts.push({ model: m0, error: String(e).slice(0, 200) })
+    }
+  }
+  if (!parsed) {
+    await admin.from('scan_errors').insert(
+      attempts.map(a => ({ stage: 'vision', model: a.model, detail: a.error })))
+    return json({ error: 'vision_failed', model: scanModel, attempts,
+      detail: attempts[0]?.error ?? 'unknown' }, 502)
   }
   if (!parsed.is_coffee_bag || (!parsed.name && !parsed.roaster)) {
     return json({ error: 'not_recognised',
@@ -260,6 +274,7 @@ Deno.serve(async (req) => {
       } else { researched = true }
     } catch (e) {
       researchError = String(e).slice(0, 200)   // enhancement only — never fatal
+      await admin.from('scan_errors').insert({ stage: 'research', model: researchModel, detail: researchError })
     }
   } else if (researchData) {
     if (researchData.water_temp_c)  recipe.temp = Math.round(researchData.water_temp_c)
@@ -295,6 +310,7 @@ Deno.serve(async (req) => {
   return json({
     coffee, recipe, sources: sources ?? [],
     research_error: researchError,
+    scan_model: usedScanModel,
     matched_roaster: roaster?.name ?? null,
     cache_hit: !!existing?.researched_at,
     scans_used: profile.scans_used + 1, scan_limit: profile.scan_limit, plan: profile.plan,
