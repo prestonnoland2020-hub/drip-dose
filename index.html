@@ -1,8 +1,3 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#B8622B"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="POR"><meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="description" content="Pour-over calculator, step-by-step brew timer and live caffeine tracker. Weigh in grams, pour on cue, know your caffeine.">
-<meta property="og:title" content="POR"><meta property="og:description" content="Pour-over calculator, brew timer and live caffeine tracker."><meta property="og:type" content="website"><meta property="og:image" content="icon-512.png">
 <title>POR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
@@ -77,111 +72,92 @@
   .brand p { margin: 0; color: var(--ink-3); font-size: 13px; }
   .top .status { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); letter-spacing: .04em; text-transform: uppercase; }
 
-  /* ---------- grid ---------- */
-  .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-  @media (min-width: 960px) {
-    .grid { grid-template-columns: 5fr 7fr; align-items: start; }
-    .col-left { display: grid; gap: 16px; position: sticky; top: 16px; }
-    .col-right { display: grid; gap: 16px; }
-  }
-  @media (max-width: 959px) {
-    .col-left, .col-right { display: contents; }
-    /* phone order: recipe → timer → plan → caffeine, so Start and the cue sit right under the dose */
-    #panel-inputs { order: 1; } #panel-out { order: 2; } #panel-log { order: 3; }
-    .app { padding: 12px 12px 20px; }
-    .grid { gap: 12px; }
-    .panel { padding: 16px 14px; border-radius: 16px; }
-    .top { padding: 2px 2px 14px; }
-    .brand p { display: none; }
-    .top .status { display: none; }
-    .dose-input input { font-size: 40px; padding: 8px 14px; }
-    .stepper { width: 52px; height: 36px; }
-    .seg button { min-height: 44px; }
-    .presets button { min-height: 44px; }
-    body { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
-    .result { padding: 0; align-items: flex-end; }
-    .card { width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); animation: sheet .3s cubic-bezier(.2,.9,.3,1); }
-    .card .actions .btn { padding: 12px 10px; font-size: 15px; white-space: nowrap; }
-    .foot { padding: 0 14px 24px; flex-direction: column; gap: 4px; }
-  }
-  @keyframes sheet { from { transform: translateY(40px); opacity: .6; } }
+  /* units inside numbers must not go italic */
+  b em, .answer b em, .row-d .v em { font-style: normal; font-size: 12px; color: var(--ink-3); font-weight: 500; margin-left: 1px; }
 
-  .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
-  .panel-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-  .panel-h h2 { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.005em; }
-  .panel-h .hint { color: var(--ink-3); font-size: 12.5px; }
-  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  /* header stays on one line */
+  .top { padding: 4px 0 16px; }
+  .brand p { display: none; }
+  @media (min-width: 620px) { .brand p { display: block; } }
+  .acct { flex: none; white-space: nowrap; }
 
-  /* ---------- inputs ---------- */
-  .dose { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
-  .dose-field { display: grid; gap: 6px; }
-  .dose-field label { font-weight: 600; font-size: 13px; }
-  .dose-input { display: flex; align-items: center; border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg); overflow: hidden; }
-  .dose-input input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 14px;
-    font-family: var(--font-mono); font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; width: 120px; letter-spacing: -.02em; }
-  .dose-input input:focus { outline: none; }
-  .dose-input .unit { padding: 0 14px 0 0; color: var(--ink-3); font-family: var(--font-mono); font-size: 16px; }
-  .steppers { display: flex; flex-direction: column; gap: 6px; }
-  .stepper { width: 44px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg-2); font-family: var(--font-mono); font-size: 16px; font-weight: 700; }
-  .stepper:hover { background: var(--bg-3); }
-  .stepper:active { transform: translateY(1px); }
-  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
-  .presets button { border: 1px solid var(--line); background: var(--bg-2); border-radius: 10px; padding: 7px 4px; font-family: var(--font-mono); font-size: 13px; font-weight: 700; display: grid; gap: 1px; justify-items: center; color: var(--ink-2); }
-  .presets button small { font-family: var(--font-body); font-weight: 500; font-size: 10.5px; color: var(--ink-3); }
+  /* room for the sticky bar */
+  body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .foot { max-width: 560px; margin: 0 auto; padding: 16px 4px 8px; font-size: 11.5px;
+    display: flex; justify-content: space-between; gap: 12px; color: var(--ink-3); }
+  /* the install hint has done its job once you have installed it */
+  @media (display-mode: standalone) { .install-hint { display: none; } }
+
+  /* ---------- layout ---------- */
+  .grid { display: grid; gap: 10px; max-width: 560px; margin: 0 auto; }
+
+  /* hero: the dose is the whole screen */
+  .hero { background: var(--bg-2); border: 1px solid var(--line); border-radius: 18px; padding: 20px 18px 18px; display: grid; gap: 14px; }
+  .hero > label { font-size: 13px; font-weight: 600; color: var(--ink-2); justify-self: center; }
+  .dose-row { display: grid; grid-template-columns: 56px 1fr 56px; gap: 12px; align-items: center; }
+  .step { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg);
+    font-family: var(--font-mono); font-size: 24px; font-weight: 700; color: var(--ink-2); }
+  .step:hover { background: var(--bg-3); color: var(--ink); }
+  .step:active { transform: scale(.94); }
+  .dose-input { display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+  .dose-input input { width: 100%; max-width: 170px; border: 0; background: transparent; text-align: right;
+    font-family: var(--font-mono); font-size: clamp(56px, 17vw, 76px); font-weight: 700; letter-spacing: -.045em;
+    font-variant-numeric: tabular-nums; padding: 0; color: var(--ink); }
+  .dose-input input:focus { outline: none; color: var(--copper); }
+  .dose-input input::-webkit-outer-spin-button, .dose-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .dose-input .unit { font-family: var(--font-mono); font-size: 22px; color: var(--ink-3); }
+  .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .presets button { border: 1px solid var(--line); background: var(--bg-2); border-radius: 999px; padding: 8px 4px;
+    font-size: 11.5px; font-weight: 600; color: var(--ink-3); min-height: 38px; }
   .presets button[aria-pressed="true"] { border-color: var(--copper); background: var(--copper-2); color: var(--ink); }
-  .range-row { display: grid; gap: 6px; margin-top: 16px; }
-  .range-row .lab { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
-  .range-row .lab output { font-family: var(--font-mono); font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-  input[type=range] { width: 100%; accent-color: var(--copper); margin: 4px 0; }
-  .seg { display: flex; background: var(--bg-3); border-radius: 10px; padding: 3px; gap: 3px; margin-top: 6px; }
-  .seg button { flex: 1; border: 0; background: transparent; padding: 8px 6px; border-radius: 8px; font-weight: 600; font-size: 13px; color: var(--ink-2); display: grid; justify-items: center; gap: 1px; line-height: 1.2; }
-  .seg button small { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; color: var(--ink-3); letter-spacing: .02em; }
-  .seg button[aria-pressed="true"] { background: var(--bg-2); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-  .seg button[aria-pressed="true"] small { color: var(--copper); }
-  .methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
-  .methods button { border: 1.5px solid var(--line); background: var(--bg-2); border-radius: 10px; padding: 8px 4px 6px; display: grid; justify-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--ink-2); line-height: 1.15; }
-  .methods button svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .answer { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; padding-top: 14px;
+    border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-3); }
+  .answer b { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .answer span { display: inline-flex; align-items: baseline; gap: 5px; }
+
+  /* one-line rows */
+  .rows { display: grid; gap: 6px; }
+  .row, .row-d > summary { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px;
+    min-height: 50px; cursor: pointer; list-style: none; }
+  .row-d { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; }
+  .row-d > summary { border: 0; background: transparent; border-radius: 12px; }
+  .row-d > summary::-webkit-details-marker { display: none; }
+  .row:hover, .row-d > summary:hover { border-color: var(--copper); }
+  .row-d:hover { border-color: var(--copper); }
+  .row .k, .row-d .k { font-size: 14px; font-weight: 600; flex: none; }
+  .row .v, .row-d .v { flex: 1; text-align: right; font-size: 13px; color: var(--ink-3); }
+  .chev { width: 7px; height: 7px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3);
+    transform: rotate(-45deg); transition: transform .2s; flex: none; margin-left: 2px; }
+  .row-d[open] > summary .chev { transform: rotate(45deg); }
+  .row-d[open] > summary { border-bottom: 1px solid var(--line); border-radius: 12px 12px 0 0; }
+  .row-d > :not(summary) { padding: 0 15px; }
+  .row-d > :last-child { padding-bottom: 14px; }
+  .row-d .stages { padding-top: 12px; }
+  .method-note { font-size: 12.5px; color: var(--ink-3); margin: 0; line-height: 1.5; }
+
+  /* ---------- setup sheet ---------- */
+  .methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .methods button { border: 1.5px solid var(--line); background: var(--bg-2); border-radius: 12px;
+    padding: 12px 4px 9px; display: grid; justify-items: center; gap: 4px; font-size: 12px;
+    font-weight: 600; color: var(--ink-2); line-height: 1.15; min-height: 74px; }
+  .methods button svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.6;
+    stroke-linecap: round; stroke-linejoin: round; }
   .methods button[aria-pressed="true"] { border-color: var(--copper); background: var(--copper-2); color: var(--ink); }
   .methods button[aria-pressed="true"] svg { stroke: var(--copper); }
-  .fine { margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; padding: 0 14px; }
-  .fine summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 12px 0; min-height: 44px; }
-  .fine summary::-webkit-details-marker { display: none; }
-  .fine-sum { flex: 1; font-weight: 600; font-size: 13.5px; }
-  .chev { width: 8px; height: 8px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); transform: rotate(45deg); transition: transform .2s; margin-right: 4px; }
-  .fine[open] .chev { transform: rotate(-135deg); }
-  .fine[open] summary { border-bottom: 1px solid var(--line); }
-  .fine > :last-child { margin-bottom: 14px; }
-  #planwrap { margin-top: 16px; }
-  #planwrap .stages { margin: 12px 0 14px; }
-  .fine .range-row { margin-top: 12px; }
-  .field-lab { font-weight: 600; font-size: 13px; margin-top: 16px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .field-lab span { color: var(--ink-3); font-weight: 500; }
-  .field-lab.block { display: grid; gap: 2px; }
-  .field-lab.block span { font-size: 12.5px; line-height: 1.4; }
-  .answer { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  @media (max-width: 460px) { .answer { grid-template-columns: repeat(2, 1fr); } }
-  .answer div { background: var(--bg); border-radius: 12px; padding: 12px 13px; display: grid; gap: 2px; }
-  .answer div.caf { background: var(--bean-2); }
-  .answer b { font-family: var(--font-mono); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; line-height: 1.15; }
-  .answer div.caf b { color: var(--bean); }
-  .answer b em { font-style: normal; font-size: 12px; color: var(--ink-3); font-weight: 500; margin-left: 2px; }
-  .tuned { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--copper-2); font-size: 12.5px; color: var(--ink-2); }
-  .tuned b { color: var(--ink); }
-  .linkbtn { border: 0; background: transparent; color: var(--copper); font-weight: 700; font-size: 12.5px; padding: 2px 4px; }
-
-  /* ---------- plan ---------- */
-  .stages { display: grid; gap: 6px; }
-  .stage { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; background: var(--bg); transition: background .2s, border-color .2s; }
-  .stage .t { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-  .stage .n { font-weight: 600; font-size: 14px; }
-  .stage .n small { display: block; font-weight: 500; font-size: 12px; color: var(--ink-3); }
-  .stage .w { font-family: var(--font-mono); font-weight: 700; font-size: 15px; text-align: right; font-variant-numeric: tabular-nums; color: var(--water); }
-  .stage .w small { display: block; font-weight: 500; font-size: 11px; color: var(--ink-3); }
-  .stage.done { opacity: .5; }
-  .stage.done .n::after { content: " ✓"; color: var(--good); }
-  .stage.active { background: var(--bg-2); border-color: var(--line); box-shadow: var(--shadow); opacity: 1; }
-  .stage.active.pour { background: var(--copper-2); border-color: var(--copper); }
-  .stage.active .t { color: var(--ink); font-weight: 700; }
+  .seg { display: flex; background: var(--bg-3); border-radius: 12px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; border: 0; background: transparent; padding: 10px 6px; border-radius: 9px;
+    font-weight: 600; font-size: 13.5px; color: var(--ink-2); min-height: 44px; }
+  .seg button[aria-pressed="true"] { background: var(--bg-2); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .field-lab { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+    font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .field-lab span { color: var(--ink-3); font-weight: 500; font-size: 12px; text-align: right; }
+  .range-row { display: grid; gap: 4px; margin-top: 4px; }
+  .range-row .lab { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+  .range-row .lab output { font-family: var(--font-mono); font-weight: 500; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--copper); margin: 2px 0 6px; }
+  #setup .si-card { gap: 10px; max-height: 92vh; overflow-y: auto; }
+  #setup h3 { margin-bottom: 2px; }
 
   /* ---------- scan ---------- */
   .scanbtn { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left;
@@ -279,7 +255,6 @@
   .btn.small:disabled { opacity: 1; background: var(--bg-3); border-color: var(--bg-3); color: var(--ink-2); }
   @media (max-height: 760px) { .result { align-items: flex-start; overflow-y: auto; } }
 
-  #panel-log { display: grid; gap: 8px; }
   .log-rows { display: grid; gap: 4px; margin-top: 8px; }
   .log-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; font-size: 12.5px; color: var(--ink-2); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
   .log-row b { color: var(--bean); }
@@ -376,7 +351,6 @@
   @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--copper) 50%, transparent); } 60% { box-shadow: 0 0 0 10px transparent; } }
   .timer-cue.pour { animation: pulse 1.2s ease-out infinite; }
 </style>
-</head><body>
 
 <div class="app">
   <header class="top">
@@ -401,92 +375,90 @@
   </header>
 
   <div class="grid">
-    <div class="col-left">
-      <!-- WHAT YOU HAVE -->
-      <section class="panel" id="panel-inputs" aria-label="Your coffee">
-        <div class="panel-h"><h2>Your coffee</h2><span class="hint">Weigh the beans, pick the gear</span></div>
 
-        <!-- scan a bag -->
-        <button class="scanbtn" id="scan-btn">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3l-1.2 2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.8L15 3zm3 5.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
-          <span><b>Scan a bag</b><small id="scan-btn-sub">Read the label, get the right recipe</small></span>
-        </button>
-        <input type="file" id="scan-file" accept="image/*" capture="environment" hidden>
-        <div class="scan-result" id="scan-result" hidden></div>
-        <div class="mycoffees" id="mycoffees" hidden></div>
-
-        <div class="dose">
-          <div class="dose-field">
-            <label for="dose">Coffee dose</label>
-            <div class="dose-input">
-              <input id="dose" type="number" inputmode="decimal" min="5" max="120" step="0.5" value="20" aria-label="Coffee dose in grams">
-              <span class="unit">g</span>
-            </div>
-          </div>
-          <div class="steppers">
-            <button class="stepper" id="dose-up" aria-label="Increase dose by one gram">+</button>
-            <button class="stepper" id="dose-down" aria-label="Decrease dose by one gram">&minus;</button>
-          </div>
+    <!-- THE ONE THING: dose, and what it makes -->
+    <section class="hero">
+      <label for="dose">Coffee</label>
+      <div class="dose-row">
+        <button class="step" id="dose-down" aria-label="One gram less">&minus;</button>
+        <div class="dose-input">
+          <input id="dose" type="number" inputmode="decimal" min="5" max="120" step="0.5" value="20" aria-label="Coffee dose in grams">
+          <span class="unit">g</span>
         </div>
+        <button class="step" id="dose-up" aria-label="One gram more">+</button>
+      </div>
+      <div class="presets" role="group" aria-label="Quick dose">
+        <button data-dose="15">1 small cup</button>
+        <button data-dose="20">1 mug</button>
+        <button data-dose="30">2 cups</button>
+        <button data-dose="45">3 cups</button>
+      </div>
+      <div class="answer" id="answer">
+        <span><b id="sum-water"></b> water</span>
+        <span><b id="sum-temp"></b></span>
+        <span><b id="sum-time"></b></span>
+      </div>
+    </section>
 
-        <div class="presets" role="group" aria-label="Quick dose">
-          <button data-dose="15">15 g <small>1 small cup</small></button>
-          <button data-dose="20">20 g <small>1 mug</small></button>
-          <button data-dose="30">30 g <small>2 cups</small></button>
-          <button data-dose="45">45 g <small>3 cups</small></button>
-        </div>
+    <!-- scan -->
+    <button class="scanbtn" id="scan-btn">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3l-1.2 2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.8L15 3zm3 5.5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+      <span><b>Scan a bag</b><small id="scan-btn-sub">Read the label, get the right recipe</small></span>
+    </button>
+    <input type="file" id="scan-file" accept="image/*" capture="environment" hidden>
+    <div class="scan-result" id="scan-result" hidden></div>
+    <div class="mycoffees" id="mycoffees" hidden></div>
 
-        <div class="field-lab">Brew method <span id="method-hint"></span></div>
-        <div class="methods" role="group" aria-label="Brew method" id="methods"></div>
+    <!-- everything else, one line each -->
+    <div class="rows">
+      <button class="row" id="row-setup">
+        <span class="k">Method</span><span class="v" id="fine-sum"></span><span class="chev" aria-hidden="true"></span>
+      </button>
 
-        <details class="fine" id="fine">
-          <summary><span class="eyebrow">Fine-tune</span><span class="fine-sum" id="fine-sum"></span><span class="chev" aria-hidden="true"></span></summary>
-          <div class="range-row">
-            <div class="lab"><label for="ratio">Brew ratio</label><output id="ratio-out">1 : 16</output></div>
-            <input id="ratio" type="range" min="10" max="20" step="0.5" value="16">
-          </div>
-          <div class="field-lab">Bean species <span id="species-hint"></span></div>
-          <div class="seg" role="group" aria-label="Bean species" id="species">
-            <button data-species="arabica" aria-pressed="true">Arabica <small>~1.2% caffeine</small></button>
-            <button data-species="robusta" aria-pressed="false">Robusta <small>~2.2% caffeine</small></button>
-          </div>
-          <div class="field-lab">Roast level <span id="roast-hint"></span></div>
-          <div class="seg" role="group" aria-label="Roast level" id="roast">
-            <button data-roast="light" aria-pressed="false">Light <small>hotter water</small></button>
-            <button data-roast="medium" aria-pressed="true">Medium <small>the safe default</small></button>
-            <button data-roast="dark" aria-pressed="false">Dark <small>cooler water</small></button>
-          </div>
-        </details>
-      </section>
-    </div>
+      <details class="row-d" id="planwrap">
+        <summary><span class="k">The pours</span><span class="v" id="plan-sum"></span><span class="chev" aria-hidden="true"></span></summary>
+        <div class="stages" id="stages"></div>
+      </details>
 
-    <div class="col-right">
-      <!-- WHAT YOU GET -->
-      <section class="panel" id="panel-out" aria-label="Your brew">
-        <div class="panel-h"><h2>Your brew</h2><span class="hint" id="out-hint"></span></div>
-        <div class="answer">
-          <div><span class="eyebrow">Water</span><b id="sum-water"></b></div>
-          <div><span class="eyebrow">Kettle</span><b id="sum-temp"></b></div>
-          <div><span class="eyebrow">Time</span><b id="sum-time"></b></div>
-          <div class="caf"><span class="eyebrow">Caffeine</span><b id="caf-total"></b></div>
-        </div>
+      <details class="row-d" id="cafwrap">
+        <summary><span class="k">Caffeine</span><span class="v" id="caf-total"></span><span class="chev" aria-hidden="true"></span></summary>
+        <p class="caf-note" id="caf-note"></p>
         <div class="tuned" id="tuned" hidden>
           <span id="tuned-text"></span>
           <button id="tuned-reset" class="linkbtn">Reset</button>
         </div>
-        <p class="caf-note" id="caf-note"></p>
+      </details>
 
-        <details class="fine" id="planwrap">
-          <summary><span class="eyebrow">The pours</span><span class="fine-sum" id="plan-sum"></span><span class="chev" aria-hidden="true"></span></summary>
-          <div class="stages" id="stages"></div>
-        </details>
-      </section>
-
-      <section class="panel" id="panel-log" aria-label="Recent brews">
-        <span class="eyebrow">Recent brews</span>
+      <details class="row-d" id="logwrap">
+        <summary><span class="k">Recent brews</span><span class="v" id="log-sum"></span><span class="chev" aria-hidden="true"></span></summary>
         <div class="log-rows" id="log"></div>
-      </section>
+      </details>
     </div>
+  </div>
+
+<!-- SETUP: everything you rarely change, in one place -->
+<div class="signin" id="setup" hidden>
+  <div class="si-card">
+    <button class="si-x" id="setup-close" aria-label="Done">✕</button>
+    <h3>Method &amp; beans</h3>
+    <div class="methods" role="group" aria-label="Brew method" id="methods"></div>
+    <p class="method-note" id="method-hint"></p>
+    <div class="range-row">
+      <div class="lab"><label for="ratio">Brew ratio</label><output id="ratio-out">1 : 16</output></div>
+      <input id="ratio" type="range" min="10" max="20" step="0.5" value="16">
+    </div>
+    <div class="field-lab">Roast level <span id="roast-hint"></span></div>
+    <div class="seg" role="group" aria-label="Roast level" id="roast">
+      <button data-roast="light" aria-pressed="false">Light</button>
+      <button data-roast="medium" aria-pressed="true">Medium</button>
+      <button data-roast="dark" aria-pressed="false">Dark</button>
+    </div>
+    <div class="field-lab">Bean species <span id="species-hint"></span></div>
+    <div class="seg" role="group" aria-label="Bean species" id="species">
+      <button data-species="arabica" aria-pressed="true">Arabica</button>
+      <button data-species="robusta" aria-pressed="false">Robusta</button>
+    </div>
+    <button class="btn primary" id="setup-done">Done</button>
   </div>
 </div>
 
@@ -579,8 +551,8 @@
 </div>
 
 <footer class="foot">
-  <span>Add POR to your home screen: on iPhone tap Share → <b>Add to Home Screen</b>; on Android tap ⋮ → <b>Install app</b>. Works offline once installed.</span>
-  <span id="version">build 20260904212620</span>
+  <span class="install-hint">Add to your home screen to use POR offline.</span>
+  <span id="version">v2</span>
 </footer>
 
 <!-- RESULT CARD -->
@@ -706,6 +678,25 @@
     tune: { temp: 0, time: 0, ratio: 0 }, // carried from taste feedback: °C, seconds of contact time, ratio points
     running: false, startedAt: 0, elapsed: 0, finished: false, lastStage: -1,
   };
+  // The app should open ready to brew what you brewed last time, not at a default.
+  const SETUP_KEY = 'por.setup';
+  function saveSetup() {
+    try { localStorage.setItem(SETUP_KEY, JSON.stringify({
+      dose: state.dose, ratio: state.ratio, species: state.species, roast: state.roast, method: state.method.id,
+    })); } catch (e) {}
+  }
+  function restoreSetup() {
+    try {
+      const v = JSON.parse(localStorage.getItem(SETUP_KEY) || 'null');
+      if (!v) return;
+      if (v.method) state.method = METHODS.find(m => m.id === v.method) || state.method;
+      if (v.dose >= 5 && v.dose <= 120) state.dose = v.dose;
+      if (v.ratio >= 10 && v.ratio <= 20) state.ratio = v.ratio;
+      if (SPECIES[v.species]) state.species = v.species;
+      if (ROAST[v.roast]) state.roast = v.roast;
+    } catch (e) {}
+  }
+
   const TUNE_KEY = 'dripdose.tune';
   try { const t = JSON.parse(localStorage.getItem(TUNE_KEY) || 'null'); if (t) state.tune = { temp: 0, time: 0, ratio: 0, ...t }; } catch (e) {}
   const saveTune = () => { try { localStorage.setItem(TUNE_KEY, JSON.stringify(state.tune)); } catch (e) {} };
@@ -791,13 +782,12 @@
     $('ratio-out').textContent = `1 : ${state.ratio}` + (state.tune.ratio ? ` → 1 : ${r.ratio}` : '');
     $('species-hint').textContent = `≈ ${SPECIES[state.species].mgPerG} mg caffeine per gram`;
     $('roast-hint').textContent = `${r.temp} °C · ${cToF(r.temp)} °F water`;
-    $('fine-sum').textContent = `1:${r.ratio} · ${SPECIES[state.species].name} · ${ROAST[state.roast].name} roast`;
+    $('fine-sum').textContent = `${state.method.name} · 1:${r.ratio} · ${ROAST[state.roast].name}`;
     $('method-hint').textContent = `${state.method.kind} · ${state.method.note}`;
     document.querySelectorAll('.presets button').forEach(b => b.setAttribute('aria-pressed', parseFloat(b.dataset.dose) === state.dose));
     $('sum-water').innerHTML = `${fmtG(r.water)}<em>g</em>`;
     $('sum-temp').innerHTML = `${r.temp}<em>°C</em> <em>${cToF(r.temp)}°F</em>`;
     $('sum-time').textContent = fmtT(r.total);
-    $('out-hint').textContent = `≈${Math.round(r.yieldMl)} ml in the cup`;
     $('plan-sum').textContent = r.stages.length + ' steps · ' + r.stages.filter(x => x.type === 'pour').length + ' pour' + (r.stages.filter(x => x.type === 'pour').length > 1 ? 's' : '');
     renderCaffeine(r);
     const tuned = tuneSummary();
@@ -994,9 +984,8 @@
   }
   function lockInputs(on) {
     ['dose', 'ratio', 'dose-up', 'dose-down'].forEach(id => $(id).disabled = on);
-    $('panel-out').style.opacity = on ? .7 : 1;
     document.querySelectorAll('#species button, #methods button, #roast button, .presets button').forEach(b => b.disabled = on);
-    $('panel-inputs').style.opacity = on ? .7 : 1;
+    $('row-setup').disabled = on;
   }
 
   // ---------- Audio cue ----------
@@ -1026,6 +1015,7 @@
   function saveLog(entry) { try { const l = [entry, ...loadLog()].slice(0, 6); localStorage.setItem(LOG_KEY, JSON.stringify(l)); } catch (e) {} }
   function renderLog() {
     const l = loadLog();
+    $('log-sum').textContent = l.length ? `${l.length} saved` : 'none yet';
     $('log').innerHTML = l.length ? l.map(e => {
       const d = new Date(e.when);
       const when = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
@@ -1071,7 +1061,11 @@
     jumpTo(t - s.t[0] < 2 && i > 0 ? r.stages[i - 1].t[0] : s.t[0]);
   });
   // Fine-tune stays open on desktop where there is room; folds on phones.
-  $('fine').open = $('planwrap').open = window.matchMedia('(min-width: 960px)').matches;
+  $('row-setup').addEventListener('click', () => { $('setup').hidden = false; });
+  const closeSetup = () => { $('setup').hidden = true; };
+  $('setup-close').addEventListener('click', closeSetup);
+  $('setup-done').addEventListener('click', closeSetup);
+  $('setup').addEventListener('click', e => { if (e.target === $('setup')) closeSetup(); });
   $('dose-up').addEventListener('click', () => setDose(state.dose + 1));
   $('dose-down').addEventListener('click', () => setDose(state.dose - 1));
   $('ratio').addEventListener('input', e => { state.ratio = parseFloat(e.target.value); renderAll(); });
@@ -1142,6 +1136,7 @@
   });
 
   function renderAll() {
+    saveSetup();
     const r = recipe();
     renderInputs();
     state.lastStage = -1;
@@ -1298,7 +1293,9 @@
   initAuth();
 
   if ($('version').textContent.includes('__')) $('version').textContent = 'preview build';
+  restoreSetup();
+  $('dose').value = state.dose;
+  $('ratio').value = state.ratio;
   renderMethods(); renderLog(); renderAll();
 })();
 </script>
-</body></html>
