@@ -1,3 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#B8622B"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="POR"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="Pour-over calculator, step-by-step brew timer and live caffeine tracker. Weigh in grams, pour on cue, know your caffeine.">
+<meta property="og:title" content="POR"><meta property="og:description" content="Pour-over calculator, brew timer and live caffeine tracker."><meta property="og:type" content="website"><meta property="og:image" content="icon-512.png">
 <title>POR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
@@ -351,6 +356,7 @@
   @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--copper) 50%, transparent); } 60% { box-shadow: 0 0 0 10px transparent; } }
   .timer-cue.pour { animation: pulse 1.2s ease-out infinite; }
 </style>
+</head><body>
 
 <div class="app">
   <header class="top">
@@ -769,7 +775,8 @@
   // ---------- Helpers ----------
   const $ = id => document.getElementById(id);
   const fmtT = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-  const fmtG = g => (Math.round(g * 2) / 2).toString().replace(/\.0$/, '');
+  const fmtDose = g => (Math.round(g * 2) / 2).toString().replace(/\.0$/, '');   // coffee: half grams matter
+  const fmtG    = g => String(Math.round(g));                                     // water: whole grams only
   const round = (v, d = 0) => Math.round(v * 10 ** d) / 10 ** d;
 
   // ---------- Render: inputs ----------
@@ -843,7 +850,7 @@
   function renderCaffeine(r) {
     const total = caffeineAt(r.total, r);
     $('caf-total').innerHTML = `${Math.round(total)}<em>mg</em>`;
-    $('caf-note').innerHTML = `<b>${fmtG(state.dose)} g</b> of ${ROAST[state.roast].name.toLowerCase()}-roast ${SPECIES[state.species].name} holds about <b>${Math.round(r.cdry)} mg</b>, and a ${fmtT(r.total)} ${state.method.name} pulls out roughly <b>${Math.round(total / r.cdry * 100)}%</b> of it — most of that during the bloom and first pour, not the later ones.`;
+    $('caf-note').innerHTML = `<b>${fmtDose(state.dose)} g</b> of ${ROAST[state.roast].name.toLowerCase()}-roast ${SPECIES[state.species].name} holds about <b>${Math.round(r.cdry)} mg</b>, and a ${fmtT(r.total)} ${state.method.name} pulls out roughly <b>${Math.round(total / r.cdry * 100)}%</b> of it — most of that during the bloom and first pour, not the later ones.`;
   }
 
   // ---------- Brew ring ----------
@@ -870,7 +877,7 @@
     const s = r.stages[idx];
     const pouring = !!(s && s.type === 'pour');
     $('brewview').classList.toggle('pour', pouring && state.running);
-    $('bv-recipe').textContent = `${fmtG(state.dose)} g · ${state.method.name} · 1:${r.ratio} · ${r.temp} °C`;
+    $('bv-recipe').textContent = `${fmtDose(state.dose)} g · ${state.method.name} · 1:${r.ratio} · ${r.temp} °C`;
     if (!s) {
       $('bv-eyebrow').textContent = 'Done'; $('bv-count').textContent = '0:00';
       $('bv-target').textContent = `${fmtG(r.water)} g`; $('bv-say').textContent = 'Brew complete';
@@ -960,13 +967,13 @@
     stopTicker(); exitBrewView(); releaseWakeLock();
     const caf = caffeineAt(r.total, r);
     const sp = SPECIES[state.species];
-    $('res-sub').textContent = `${state.method.name} · ${fmtG(state.dose)} g ${ROAST[state.roast].name.toLowerCase()} ${sp.name} · 1:${r.ratio} · ${r.temp} °C`;
+    $('res-sub').textContent = `${state.method.name} · ${fmtDose(state.dose)} g ${ROAST[state.roast].name.toLowerCase()} ${sp.name} · 1:${r.ratio} · ${r.temp} °C`;
     $('res-profile').textContent = cupProfile(r);
     document.querySelectorAll('#taste-chips button').forEach(b => b.setAttribute('aria-pressed', 'false'));
     $('taste-advice').hidden = true;
     $('res-caf').textContent = Math.round(caf);
     $('res-caf-note').textContent = `of ${Math.round(r.cdry)} mg in the dry dose`;
-    $('res-dose').innerHTML = `${fmtG(state.dose)}<em>g</em>`;
+    $('res-dose').innerHTML = `${fmtDose(state.dose)}<em>g</em>`;
     $('res-water').innerHTML = `${fmtG(r.water)}<em>g · ≈${Math.round(r.yieldMl)} ml out</em>`;
     $('res-pct').innerHTML = `${Math.round(caf / r.cdry * 100)}<em>% of caffeine</em>`;
     $('res-time').textContent = fmtT(r.total);
@@ -1019,7 +1026,7 @@
     $('log').innerHTML = l.length ? l.map(e => {
       const d = new Date(e.when);
       const when = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-      return `<div class="log-row"><span>${e.method} · ${fmtG(e.dose)} g ${e.roast ? e.roast.toLowerCase() + ' ' : ''}${e.species}${e.temp ? ' · ' + e.temp + '°' : ''}</span><b>${e.mg} mg</b><span>${when}</span></div>`;
+      return `<div class="log-row"><span>${e.method} · ${fmtDose(e.dose)} g ${e.roast ? e.roast.toLowerCase() + ' ' : ''}${e.species}${e.temp ? ' · ' + e.temp + '°' : ''}</span><b>${e.mg} mg</b><span>${when}</span></div>`;
     }).join('') : '<span class="empty">Finished brews land here.</span>';
   }
 
@@ -1084,7 +1091,7 @@
     const items = [];
     if (T.tune.temp) { const nt = Math.max(80, Math.min(100, r.temp + T.tune.temp)); items.push(`Water <b>${r.temp} → ${nt} °C</b> (${cToF(nt)} °F)`); }
     if (T.tune.time) { const first = r.stages.find(s => s.type === 'wait'); items.push(`${first ? first.name : 'Rest'} <b>${fmtT(first ? first.t[1] - first.t[0] : 0)} → ${fmtT((first ? first.t[1] - first.t[0] : 0) + T.tune.time)}</b>, total brew <b>${fmtT(r.total + T.tune.time)}</b>`); }
-    if (T.tune.ratio) { const nr = Math.max(10, Math.min(20, r.ratio + T.tune.ratio)); items.push(`Ratio <b>1:${r.ratio} → 1:${nr}</b> (${fmtG(state.dose * nr)} g water for ${fmtG(state.dose)} g)`); }
+    if (T.tune.ratio) { const nr = Math.max(10, Math.min(20, r.ratio + T.tune.ratio)); items.push(`Ratio <b>1:${r.ratio} → 1:${nr}</b> (${fmtG(state.dose * nr)} g water for ${fmtDose(state.dose)} g)`); }
     T.tips.forEach(t => items.push(t + ' (you control this at the grinder)'));
     if (T.tune.temp || T.tune.time) items.push(`Caffeine will move a little too: ${T.tune.temp > 0 ? 'hotter, longer' : 'cooler, shorter'} contact ${T.tune.temp > 0 ? 'raises' : 'lowers'} it a few mg.`);
     $('advice-why').textContent = T.why;
@@ -1299,3 +1306,4 @@
   renderMethods(); renderLog(); renderAll();
 })();
 </script>
+</body></html>
