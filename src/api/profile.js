@@ -1,7 +1,7 @@
 import { supa, uid } from '../supa.js'
 export async function me() {
   const c = await supa(); const id = uid(); if (!id) return null
-  const { data } = await c.from('profiles').select('id, email, username, display_name, avatar_url, bio, favorite_method, equipment, prefs, plan, scans_used, scan_limit').eq('id', id).maybeSingle()
+  const { data } = await c.from('profiles').select('id, email, username, display_name, avatar_url, bio, favorite_method, equipment, prefs, setup, plan, scans_used, scan_limit').eq('id', id).maybeSingle()
   return data
 }
 export async function update(patch) {
