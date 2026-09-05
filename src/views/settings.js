@@ -1,5 +1,5 @@
 // SETTINGS — the things the recommendation engine should know about you.
-import { mount, top, esc, $, toast } from '../ui.js'
+import { mount, top, esc, $, toast, icon, I } from '../ui.js'
 import { state, set } from '../store.js'
 import { uid } from '../supa.js'
 import * as profile from '../api/profile.js'
@@ -16,9 +16,7 @@ export async function render() {
       ${f('display_name', 'Name', p.display_name)}${f('username', 'Username', p.username)}${f('bio', 'Bio', p.bio, 'One line')}
       <div class="field"><label>Favourite method</label><select class="input" name="favorite_method"><option value="">—</option>${METHODS.map(m => `<option value="${m.id}" ${p.favorite_method === m.id ? 'selected' : ''}>${m.name}</option>`).join('')}</select></div>
       <div class="eyebrow" style="margin-top:10px"><b>02</b>Equipment</div>
-      <div class="grid2">${f('e.brewer', 'Brewer', e.brewer, 'Hario V60 02')}${f('e.grinder', 'Grinder', e.grinder, 'Baratza Encore')}</div>
-      <div class="grid2">${f('e.grinder_model', 'Grinder setting range', e.grinder_model, 'e.g. 1–40')}${f('e.filter', 'Filter', e.filter, 'Hario tabbed')}</div>
-      <div class="grid2">${f('e.kettle', 'Kettle', e.kettle, 'Fellow Stagg')}${f('e.water', 'Water', e.water, 'Third Wave Water')}</div>
+      <a class="card row between" href="#/setup"><div><b>Your setup</b><div class="small muted">${esc([e.grinder, e.brewer].filter(Boolean).join(' · ') || 'Grinder, brewer, kettle…')}</div></div>${icon(I.chev)}</a>
       <div class="eyebrow" style="margin-top:10px"><b>03</b>Preferences</div>
       <div class="grid2">${f('p.dose', 'Usual dose (g)', pr.dose ?? state.dose)}<div class="field"><label>Units</label><select class="input" name="units"><option value="c" ${state.units === 'c' ? 'selected' : ''}>°C</option><option value="f" ${state.units === 'f' ? 'selected' : ''}>°F</option></select></div></div>
       <div class="field"><label>Strength</label><div class="seg" id="strength">${['lighter', 'balanced', 'stronger'].map(x => `<button type="button" data-v="${x}" aria-pressed="${(pr.strength || 'balanced') === x}">${x[0].toUpperCase() + x.slice(1)}</button>`).join('')}</div></div>
@@ -30,7 +28,8 @@ export async function render() {
   const gs = seg('strength'), gt = seg('taste')
   $('sf').onsubmit = async ev => {
     ev.preventDefault(); const fd = new FormData(ev.target); const patch = { equipment: {}, prefs: { strength: gs(), taste: gt() } }
-    for (const [k, v] of fd.entries()) { if (k.startsWith('e.')) patch.equipment[k.slice(2)] = v || null; else if (k === 'p.dose') patch.prefs.dose = Number(v) || null; else if (k === 'units') set({ units: v }); else patch[k] = v || null }
+    delete patch.equipment
+    for (const [k, v] of fd.entries()) { if (k.startsWith('e.')) continue; else if (k === 'p.dose') patch.prefs.dose = Number(v) || null; else if (k === 'units') set({ units: v }); else patch[k] = v || null }
     try { await profile.update(patch); if (patch.prefs.dose) set({ dose: patch.prefs.dose }); toast('Saved'); location.hash = '#/profile' } catch (e) { toast(e.message?.includes('username') ? 'That username is taken' : 'Could not save') }
   }
 }

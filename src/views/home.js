@@ -7,6 +7,7 @@ import * as brews from '../api/brews.js'
 import * as social from '../api/social.js'
 import * as library from '../api/library.js'
 import * as profile from '../api/profile.js'
+import * as setup from '../api/setup.js'
 import { postCard, bindPosts, methodName } from './shared.js'
 
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Late night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening' }
@@ -41,7 +42,7 @@ async function loadRec(c) {
   el.innerHTML = `<div class="section-h"><h2>Recommended</h2><a href="#/brew">Change</a></div><div class="skeleton"></div>`
   try {
     const me = uid() ? await profile.me().catch(() => null) : null
-    const rec = await coffees.recommend({ coffee_id: c.id, method: state.method, dose: state.dose, roast: state.roast, equipment: me?.equipment || {}, prefs: me?.prefs || {} })
+    const rec = await coffees.recommend({ coffee_id: c.id, method: state.method, dose: state.dose, roast: state.roast, equipment: me?.equipment || {}, prefs: me?.prefs || {}, grinder_id: (uid() ? setup.activeGrinder(await setup.get().catch(() => [])) : null)?.catalog_id || null })
     set({ rec })
     const r = rec.recipe
     el.innerHTML = `<div class="section-h"><h2>Recommended</h2><a href="#/brew">Change</a></div>

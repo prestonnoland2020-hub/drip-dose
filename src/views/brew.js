@@ -3,9 +3,14 @@ import { mount, top, esc, icon, I, $, bagImg, coffeeTitle, coffeeMeta } from '..
 import { state, set } from '../store.js'
 import { byId } from '../methods.js'
 import { methodGrid, doseStepper, bindStepper } from './shared.js'
+import * as setup from '../api/setup.js'
+import { uid } from '../supa.js'
+import { sheet, closeSheet } from '../ui.js'
 
 export async function render() {
   const c = state.coffee
+  const items = uid() ? await setup.get().catch(() => []) : []
+  const g = setup.activeGrinder(items)
   mount(`${top('Brew')}
     <div class="eyebrow"><b>01</b>Coffee</div>
     <div class="card" style="margin:8px 0 22px">${c
@@ -14,7 +19,9 @@ export async function render() {
     <div class="eyebrow"><b>02</b>Brewer</div>
     <div style="margin:8px 0 22px" id="methods">${methodGrid(state.method)}</div>
     <div class="eyebrow"><b>03</b>Dose</div>
-    <div style="margin:8px 0 26px" id="dose">${doseStepper(state.dose)}</div>
+    <div style="margin:8px 0 22px" id="dose">${doseStepper(state.dose)}</div>
+    <div class="eyebrow"><b>04</b>Grinder</div>
+    <button class="card row between" id="gear" style="margin:8px 0 26px;width:100%;text-align:left;padding:12px 14px"><div><b>${g ? esc(g.name) : uid() ? 'Add your grinder' : 'Sign in to add your grinder'}</b><div class="small muted">${g ? 'You get a setting, not a vague grind size' : 'POR turns the recipe into a number on your dial'}</div></div>${icon(I.chev)}</button>
     <a class="btn primary big" href="#/recipe" id="go">${icon(I.spark)} ${c ? 'Get my recipe' : 'Build a recipe'}</a>
     <div class="grid2" style="margin-top:14px"><a class="btn" href="#/calc">Calculators</a><a class="btn" href="#/barista">Ask the barista</a></div>`)
   $('methods').querySelectorAll('[data-method]').forEach(b => b.onclick = () => {
@@ -22,4 +29,11 @@ export async function render() {
   })
   bindStepper($('dose'), () => state.dose, v => set({ dose: v }))
   $('no-coffee')?.addEventListener('click', () => { set({ coffee: null, rec: null }); render() })
+  $('gear').onclick = () => {
+    if (!uid()) return location.hash = '#/signin'
+    const gs = items.filter(i => i.kind === 'grinder')
+    if (gs.length < 2) return location.hash = '#/setup'
+    const p = sheet(`<h3>Which grinder?</h3><div class="list" style="margin-top:8px">${gs.map(i => `<button class="chip" data-g="${i.id}" aria-pressed="${!!i.active}" style="justify-content:flex-start;min-height:46px">${esc(i.name)}</button>`).join('')}<a class="btn ghost" href="#/setup">Edit setup</a></div>`)
+    p.querySelectorAll('[data-g]').forEach(b => b.onclick = async () => { await setup.setActive(b.dataset.g); set({ rec: null }); closeSheet(); render() })
+  }
 }

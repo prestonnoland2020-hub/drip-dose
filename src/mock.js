@@ -4,7 +4,7 @@ const C1 = '11111111-1111-1111-1111-111111111111', C2 = '22222222-2222-2222-2222
 const B1 = 'b1', B2 = 'b2', B3 = 'b3'
 const now = Date.now(), ago = h => new Date(now - h * 3600000).toISOString()
 const T = {
-  profiles: [{ id: ME, email: 'preston@example.com', username: 'preston', display_name: 'Preston', favorite_method: 'v60', equipment: { grinder: 'Baratza Encore', brewer: 'Hario V60 02' }, prefs: { dose: 20 }, plan: 'free', scans_used: 2, scan_limit: 5 }],
+  profiles: [{ id: ME, email: 'preston@example.com', username: 'preston', display_name: 'Preston', favorite_method: 'v60', equipment: { grinder: 'OXO Brew Conical Burr', brewer: 'V60' }, prefs: { dose: 20 }, setup: [{ id: 'g1', kind: 'grinder', catalog_id: 'oxo-brew-conical', name: 'OXO Brew Conical Burr', active: true }, { id: 'g2', kind: 'grinder', catalog_id: 'baratza-encore', name: 'Baratza Encore', active: false }, { id: 'b1', kind: 'brewer', method: 'v60', name: 'V60', active: true }], plan: 'free', scans_used: 2, scan_limit: 5 }],
   people: [{ id: ME, username: 'preston', display_name: 'Preston', favorite_method: 'v60' }, { id: AL, username: 'alex_k', display_name: 'Alex', favorite_method: 'chemex' }],
   coffees: [
     { id: C1, slug: 'black-white|the-new-school-strawberry', roaster: 'Black & White', name: 'The New School Strawberry', origin: null, process: null, roast_level: 'light', blend: true, decaf: false, tasting_notes: 'strawberry jam, canned pineapple, milk chocolate', field_sources: {}, researched_at: ago(30), created_at: ago(40), updated_at: ago(2) },
@@ -18,6 +18,7 @@ const T = {
   library: [{ user_id: ME, coffee_id: C1, status: 'drinking', added_at: ago(40), roast_date: new Date(now - 12 * 86400000).toISOString().slice(0, 10) }, { user_id: ME, coffee_id: C2, status: 'want', added_at: ago(100) }],
   follows: [{ follower_id: ME, target_type: 'user', target_id: AL }], brew_likes: [{ brew_id: B1, user_id: AL }], brew_comments: [{ id: 'c1', brew_id: B1, user_id: AL, body: 'Trying this tomorrow.', created_at: ago(3) }], saved_recipes: [{ user_id: ME, brew_id: B3 }],
   brew_reference: [], roasters: [],
+  grinders: [{ id: 'oxo-brew-conical', brand: 'OXO', model: 'Brew Conical Burr', aliases: ['OXO conical'], kind: 'electric', scale: 'numbers', setting_min: 1, setting_max: 15, step: 1, note: '1 is finest. Pour-over sits around 8–10.' }, { id: 'baratza-encore', brand: 'Baratza', model: 'Encore', aliases: [], kind: 'electric', scale: 'numbers', setting_min: 1, setting_max: 40, step: 1, note: '' }],
 }
 T.coffee_stats = [{ coffee_id: C1, brews: 2, avg_rating: 8.8, brewers: 1, last_brewed: ago(5) }, { coffee_id: C2, brews: 1, avg_rating: 7.9, brewers: 1, last_brewed: ago(9) }]
 T.coffee_method_stats = [{ coffee_id: C1, method: 'v60', brews: 2, avg_rating: 8.8, median_rating: 8.8, recommend_pct: 100, common_ratio: 16, common_temp: 96, common_grind: 'Medium-fine', avg_seconds: 176 }]
@@ -60,12 +61,13 @@ export async function mockFn(name, body) {
   if (name === 'recommend') {
     const { METHODS } = await import('./methods.js'); const M = METHODS.find(m => m.id === body.method) || METHODS[0]
     const dose = body.dose || 20, water = Math.round(dose * 16 / 5) * 5, steps = M.steps(dose, water)
-    return { recipe: { method: M.id, method_name: M.name, dose, water, ratio: 16, temp: 96, grind_label: 'Medium-fine, like table salt', grind_microns: 440, grind_hint: 'Medium-fine on your Baratza Encore', steps, total: steps[steps.length - 1].t[1], bloom: 2.5 },
+    return { recipe: { method: M.id, method_name: M.name, dose, water, ratio: 16, temp: 96, grind_label: 'Medium-fine, like table salt', grind_microns: 440, grind_hint: 'Medium-fine on your OXO Brew Conical Burr', grinder: { id: 'oxo-brew-conical', brand: 'OXO', model: 'Brew Conical Burr', scale: 'numbers' }, grind_setting: '6', grind_setting_num: 6, steps, total: steps[steps.length - 1].t[1], bloom: 2.5 },
       why: 'Last time you said just right — this is that recipe again. This is a light roast, a blend. Lighter roasts are dense and less soluble, so the water runs hot and the grind sits on the fine side of the range.',
       confidence: 'high', changed: [], sources: [{ kind: 'label', text: 'What the bag says (light roast)' }, { kind: 'reference', text: 'Hario V60 published ranges — SCA brewing guidance' }, { kind: 'community', text: '2 community brews of this coffee on V60' }, { kind: 'you', text: 'Your last brew of this (9.4/10)' }],
       community: { brews: 2, avg_rating: 8.8, recommend_pct: 100, common_ratio: 16, common_temp: 96, common_grind: 'Medium-fine', avg_seconds: 176 }, basis: 'Hario V60 published ranges, set for light roast' }
   }
   if (name === 'scan-bag') return { coffee: T.coffees[0], recipe: {}, sources: [], cache_hit: true, scans_used: 3, scan_limit: 5 }
+  if (name === 'identify-gear') return { kind: 'grinder', brand: 'OXO', model: 'Brew Conical Burr', confidence: 0.9, grinder: T.grinders[0], candidates: T.grinders, method: null }
   if (name === 'barista') return { answer: 'Your last Strawberry was 20 g to 320 g at 96 °C (205 °F) and you rated it 9.4 — I would not touch it. If the next cup reads sharper, go one click finer and leave everything else alone.', brews_used: 2 }
   return {}
 }

@@ -17,6 +17,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { deriveRecipe } from './recipe.ts'
 import { byId } from './methods.ts'
 import { nextTime } from './feedback.ts'
+import { settingFor, fmtSetting, stepSetting, micronsFor, grinderName } from './grind.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -44,6 +45,10 @@ Deno.serve(async (req) => {
   const dose: number = Math.max(5, Math.min(120, Number(body.dose) || Number(body.prefs?.dose) || 20))
   const roastHint: string | null = typeof body.roast === 'string' ? body.roast : null
   const equipment = body.equipment ?? {}
+  // The grinder: a catalogue row when we have one, or just a name.
+  let grinder: any = null
+  if (body.grinder_id) { const { data } = await admin.from('grinders').select('*').eq('id', body.grinder_id).maybeSingle(); grinder = data }
+  const grinderLabel: string | null = grinder ? grinderName(grinder) : (equipment.grinder || null)
 
   // ---- the coffee -------------------------------------------------------------
   let coffee: any = null
@@ -117,14 +122,22 @@ Deno.serve(async (req) => {
     ratio = Number(last.ratio) || ratio
     if (last.temp_c) temp = last.temp_c
     if (last.ai_recipe?.grind_microns) grindUm = last.ai_recipe.grind_microns
+    // If they dialled in on this same grinder, that setting is the truth, not the chart.
+    if (grinder && last.grinder === grinderLabel && last.grind_setting && Number.isFinite(parseFloat(last.grind_setting))) {
+      const um = micronsFor(grinder, parseFloat(last.grind_setting)); if (um) grindUm = um
+    }
     sources.push({ kind: 'you', text: `Your last brew of this (${last.rating ? last.rating + '/10' : 'unrated'})` })
     confidence = 'high'
-    next = last.next_time ?? nextTime(last.feedback ?? [], { grind_microns: grindUm, grinder: equipment.grinder, temp_c: temp, ratio })
+    next = last.next_time ?? nextTime(last.feedback ?? [], { grind_microns: grindUm, grinder: grinderLabel, temp_c: temp, ratio })
     if (next?.change) {
       const c = next.change
       if (c.var === 'ratio' && c.to) { changed.push({ var: 'ratio', from: ratio, to: c.to, why: 'your feedback' }); ratio = c.to }
       if (c.var === 'temp' && c.to)  { changed.push({ var: 'temp', from: temp, to: c.to, why: 'your feedback' }); temp = c.to }
-      if (c.var === 'grind' && c.pct) { const to = Math.round(grindUm * (1 + c.pct)); changed.push({ var: 'grind', from: grindUm, to, why: 'your feedback' }); grindUm = to }
+      if (c.var === 'grind' && c.pct) {
+        let to = Math.round(grindUm * (1 + c.pct))
+        if (grinder) { const cur = settingFor(grinder, grindUm); if (cur != null) { const n = (Math.abs(c.pct) >= 0.08 ? 2 : 1) * Math.sign(c.pct); to = micronsFor(grinder, stepSetting(grinder, cur, n)) ?? to } }
+        changed.push({ var: 'grind', from: grindUm, to, why: 'your feedback' }); grindUm = to
+      }
       why.unshift(`Last time you said ${(last.feedback ?? []).map((f: string) => f.replace(/_/g, ' ')).join(', ')}. ${next.why}`)
     } else if (next) {
       why.unshift(`Last time was ${last.rating ? last.rating + '/10' : 'good'} and you said it was just right — this is that recipe again.`)
@@ -155,8 +168,12 @@ Deno.serve(async (req) => {
     grind_label: base.grind, grind_microns: grindUm, bloom: base.bloom,
     roast_level: base.roast_level, roast_assumed: base.roast_assumed,
     steps, total,
-    grind_hint: equipment.grinder ? `${base.grind} on your ${equipment.grinder}` : base.grind,
+    grind_hint: grinderLabel ? `${base.grind} on your ${grinderLabel}` : base.grind,
+    grinder: grinder ? { id: grinder.id, brand: grinder.brand, model: grinder.model, scale: grinder.scale, note: grinder.note } : grinderLabel ? { name: grinderLabel } : null,
+    grind_setting: grinder ? fmtSetting(grinder, settingFor(grinder, grindUm)) : null,
+    grind_setting_num: grinder ? settingFor(grinder, grindUm) : null,
   }
+  if (grinder) sources.push({ kind: 'grinder', text: `${grinderName(grinder)} grind chart (approximate — burrs vary by a step or two)` })
   if (!why.length) why.push(`${M.name} published ranges${ref ? `` : ''}, set for ${base.basis.replace(/^.*set for /, '')}.`)
 
   return json({

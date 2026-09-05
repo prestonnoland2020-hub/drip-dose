@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { deriveRecipe, mergeLabel, processRule, densityShift } from './recipe.mjs'
 
 const REF = {
-  v60:         { method:'v60', display_name:'Hario V60', grind_label:'Medium-fine', grind_min_um:400, grind_max_um:700, temp_min_c:90, temp_max_c:96, ratio_min:'15.0', ratio_max:'17.0' },
+  v60:         { method:'v60', display_name:'Hario V60', grind_label:'Medium-fine', grind_min_um:450, grind_max_um:750, temp_min_c:90, temp_max_c:96, ratio_min:'15.0', ratio_max:'17.0' },
   frenchpress: { method:'frenchpress', display_name:'French Press', grind_label:'Coarse', grind_min_um:800, grind_max_um:1200, temp_min_c:92, temp_max_c:96, ratio_min:'14.0', ratio_max:'17.0' },
   chemex:      { method:'chemex', display_name:'Chemex', grind_label:'Medium-coarse', grind_min_um:700, grind_max_um:900, temp_min_c:92, temp_max_c:96, ratio_min:'15.0', ratio_max:'17.0' },
 }
@@ -72,7 +72,7 @@ test('altitude beats origin; origin never applies to blends; density fades with 
 test('never leaves the published range', () => {
   // light + anaerobic + high altitude + very fresh: pushes in both directions, must stay clamped
   const r = deriveRecipe({ name:'x', roast_level:'light', process:'anaerobic', altitude_m:2100 }, REF.v60, null, null, 'v60')
-  assert.ok(r.temp >= 90 && r.temp <= 96); assert.ok(r.grind_microns >= 400 && r.grind_microns <= 700)
+  assert.ok(r.temp >= 90 && r.temp <= 96); assert.ok(r.grind_microns >= 450 && r.grind_microns <= 750)
   const d = deriveRecipe({ name:'x', roast_level:'very-dark', process:'natural', decaf:true }, REF.chemex, null, null, 'chemex')
   assert.ok(d.temp >= 92 && d.temp <= 96); assert.ok(d.grind_microns >= 700 && d.grind_microns <= 900)
 })

@@ -24,7 +24,7 @@ export async function render({ params }) {
     <div class="rating-big" id="big">${v.rating.toFixed(1)}<small>/10</small></div>
     <input type="range" id="rating" min="1" max="10" step="0.1" value="${v.rating}" aria-label="Rating out of 10">
     <div class="section stack" style="gap:10px" id="dims">${DIMS.map(([k, l]) => `<div class="dim"><span>${l}</span><div class="stars" data-dim="${k}">${[1, 2, 3, 4, 5].map(n => `<button aria-pressed="${v.dims[k] >= n}" data-n="${n}" aria-label="${l} ${n}">★</button>`).join('')}</div></div>`).join('')}</div>
-    <div class="section grid2"><div class="field"><label for="grind">Grind setting${me?.equipment?.grinder ? ` on your ${esc(me.equipment.grinder)}` : ''}</label><input class="input" id="grind" placeholder="e.g. 18" value="${esc(brew.grind_setting || lastGrind || '')}"></div><div class="field"><label>Water temp</label><div class="input" style="display:flex;align-items:center">${brew.temp_c ? brew.temp_c + ' °C' : '—'}</div></div></div>
+    <div class="section grid2"><div class="field"><label for="grind">Grind setting${brew.grinder || me?.equipment?.grinder ? ` on your ${esc(brew.grinder || me.equipment.grinder)}` : ''}</label><input class="input" id="grind" placeholder="e.g. 18" value="${esc(brew.grind_setting || lastGrind || '')}"></div><div class="field"><label>Water temp</label><div class="input" style="display:flex;align-items:center">${brew.temp_c ? brew.temp_c + ' °C' : '—'}</div></div></div>
     <div class="section field"><label for="notes">Tasting notes</label><textarea class="input" id="notes" placeholder="Blueberry, super sweet, very clean.">${esc(v.notes)}</textarea></div>
     <div class="section"><h3>What should we change next time?</h3><div class="chips" id="fb" style="margin-top:8px">${FEEDBACK.map(f => `<button class="chip" data-f="${f.id}" aria-pressed="${v.feedback.has(f.id)}">${f.label}</button>`).join('')}</div></div>
     <div class="section row between"><label class="row"><input type="file" id="photo" accept="image/*" hidden><button class="btn sm" id="addphoto">${icon(I.camera)} Add a photo</button><span class="small muted" id="photoname"></span></label><label class="row small"><input type="checkbox" id="pub" ${v.pub ? 'checked' : ''}> Share with the community</label></div>
@@ -41,9 +41,9 @@ export async function render({ params }) {
   $('save').onclick = async () => {
     $('save').disabled = true
     const feedback = [...v.feedback]
-    const next = nextTime(feedback, { grind_microns: brew.ai_recipe?.grind_microns, grinder: me?.equipment?.grinder || null, temp_c: brew.temp_c, ratio: Number(brew.ratio || (brew.water_g / brew.dose_g)) })
+    const next = nextTime(feedback, { grind_microns: brew.ai_recipe?.grind_microns, grinder: brew.grinder || me?.equipment?.grinder || null, temp_c: brew.temp_c, ratio: Number(brew.ratio || (brew.water_g / brew.dose_g)) })
     const patch = { rating: v.rating, ...v.dims, notes: $('notes').value.trim() || null, feedback, next_time: next, public: $('pub').checked,
-      grind_setting: $('grind').value.trim() || null, grinder: me?.equipment?.grinder || null, brewer: me?.equipment?.brewer || null }
+      grind_setting: $('grind').value.trim() || null, grinder: brew.grinder || me?.equipment?.grinder || null, brewer: me?.equipment?.brewer || null }
     for (const k in patch) if (DIMS.some(([d]) => d === k) && !patch[k]) patch[k] = null
     try {
       if (v.photo && uid()) { patch.photo_path = await brews.uploadPhoto(await shrinkFile(v.photo)) }

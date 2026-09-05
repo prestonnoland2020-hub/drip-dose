@@ -5,6 +5,7 @@ import { uid } from '../supa.js'
 import { byId } from '../methods.js'
 import * as coffees from '../api/coffees.js'
 import * as profile from '../api/profile.js'
+import * as setup from '../api/setup.js'
 import { recipeSpec, stepsList, confidenceTag } from './shared.js'
 
 let me = null
@@ -25,7 +26,7 @@ async function load() {
   let rec
   if (state.rec?.local && state.rec.recipe?.method === state.method && state.rec.recipe?.dose === state.dose) rec = state.rec
   else try {
-    rec = await coffees.recommend({ coffee_id: c?.id ?? null, method: state.method, dose: state.dose, roast: state.roast, equipment: me?.equipment || {}, prefs: me?.prefs || {} })
+    rec = await coffees.recommend({ coffee_id: c?.id ?? null, method: state.method, dose: state.dose, roast: state.roast, equipment: me?.equipment || {}, prefs: me?.prefs || {}, grinder_id: (uid() ? setup.activeGrinder(await setup.get().catch(() => [])) : null)?.catalog_id || null })
   } catch (e) {
     // Offline or signed-out fallback: method defaults, computed here.
     const water = Math.round(state.dose * M.ratio / 5) * 5
@@ -38,7 +39,9 @@ async function load() {
   const r = rec.recipe
   el.innerHTML = `
     ${recipeSpec(r, state.units)}
-    <div class="row between" style="margin:12px 0 4px"><span class="small muted">Grind: <b>${esc(r.grind_hint || r.grind_label)}</b>${r.grind_microns ? ` · ${r.grind_microns} µm` : ''}</span>${confidenceTag(rec.confidence)}</div>
+    <div class="row between" style="margin:12px 0 4px;align-items:flex-start">${r.grind_setting
+      ? `<div><div class="eyebrow">Grind</div><b style="font-size:20px">${esc(r.grinder.brand)} ${esc(r.grinder.model)} · ${esc(r.grind_setting)}</b><div class="small muted">${esc(r.grind_label)}${r.grind_microns ? ` · about ${r.grind_microns} µm` : ''} · charts are ±1–2 steps; your ratings fix that</div></div>`
+      : `<span class="small muted">Grind: <b>${esc(r.grind_hint || r.grind_label)}</b>${r.grind_microns ? ` · ${r.grind_microns} µm` : ''}${uid() ? ` · <a href="#/setup" style="color:var(--accent)">add your grinder for a setting</a>` : ''}</span>`}${confidenceTag(rec.confidence)}</div>
     <div class="section"><div class="eyebrow"><b>Recipe</b></div>${stepsList(r.steps)}</div>
     <div style="margin:18px 0 6px"><a class="btn primary big" href="#/timer" id="start">${icon(I.play)} Start brew</a></div>
     <div class="grid2" style="margin-bottom:22px"><button class="btn" id="adjust">Adjust</button>${c ? `<a class="btn" href="#/coffee/${c.id}">Community brews</a>` : `<a class="btn" href="#/add">Add the coffee</a>`}</div>

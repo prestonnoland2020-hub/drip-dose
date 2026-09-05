@@ -21,8 +21,9 @@ const routes = {
   'calc': () => import('./views/calc.js'),
   'barista': () => import('./views/barista.js'),
   'settings': () => import('./views/settings.js'),
+  'setup': () => import('./views/setup.js'),
 }
-const TAB_OF = { '': 'home', home: 'home', discover: 'discover', brew: 'brew', add: 'brew', recipe: 'brew', timer: 'brew', rate: 'brew', calc: 'brew', barista: 'brew', library: 'library', b: 'library', profile: 'profile', user: 'profile', settings: 'profile', signin: 'profile', coffee: 'discover' }
+const TAB_OF = { '': 'home', home: 'home', discover: 'discover', brew: 'brew', add: 'brew', recipe: 'brew', timer: 'brew', rate: 'brew', calc: 'brew', barista: 'brew', library: 'library', b: 'library', profile: 'profile', user: 'profile', settings: 'profile', setup: 'profile', signin: 'profile', coffee: 'discover' }
 
 let current = null
 export function navigate(hash) { location.hash = hash }
@@ -51,7 +52,16 @@ async function route() {
 window.addEventListener('hashchange', route)
 window.addEventListener('DOMContentLoaded', async () => {
   await initAuth()
-  onAuth(() => { if (parse().name === 'signin' && session) navigate('#/home') })
+  onAuth(async s => {
+    if (!s) return
+    if (parse().name === 'signin') navigate('#/home')
+    // First sign-in: ask for the grinder once. Skippable, and never asked again after that.
+    try {
+      if (localStorage.getItem('por.setupSkipped')) return
+      const setup = await import('./api/setup.js'); const items = await setup.get()
+      if (!items.length && parse().name !== 'setup') navigate('#/setup?first=1')
+    } catch {}
+  })
   route()
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').then(reg => {

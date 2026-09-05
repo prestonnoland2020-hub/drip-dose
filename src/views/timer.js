@@ -24,7 +24,7 @@ export async function render() {
     <div class="top"><button class="back" id="leave">${icon(I.x)} Cancel</button><div class="eyebrow">${esc(M.name)} · ${esc(String(r.dose).replace(/\.0$/, ''))} g → ${Math.round(r.water)} g · ${r.temp_note ? esc(r.temp_note) : r.temp + ' °C'}</div></div>
     <div class="ring"><svg viewBox="0 0 240 240"><circle class="track" cx="120" cy="120" r="${R}"/>${steps.filter(s => s.type === 'pour').map(s => arc(s, r.total)).join('')}<circle class="prog" id="prog" cx="120" cy="120" r="${R}" stroke-dasharray="0 ${C}"/></svg>
       <div class="mid"><div class="clock num" id="clock">0:00</div><div class="stage" id="stage">Ready</div><div class="target" id="target"></div></div></div>
-    <div class="cue" id="cue"><b>Tap start when the water's on</b><small>Kettle at ${r.temp_note ? esc(r.temp_note).toLowerCase() : r.temp + ' °C · ' + Math.round(r.temp * 9 / 5 + 32) + ' °F'}, ${esc(String(r.dose).replace(/\.0$/, ''))} g ground ${esc((r.grind_label || '').toLowerCase())}</small></div>
+    <div class="cue" id="cue"><b>Tap start when the water's on</b><small>Kettle at ${r.temp_note ? esc(r.temp_note).toLowerCase() : r.temp + ' °C · ' + Math.round(r.temp * 9 / 5 + 32) + ' °F'}, ${esc(String(r.dose).replace(/\.0$/, ''))} g ground ${r.grind_setting ? `at <b>${esc(r.grinder.brand)} ${esc(r.grind_setting)}</b>` : esc((r.grind_label || '').toLowerCase())}</small></div>
     <div class="next" id="next"></div>
     <div class="ctrl"><button class="btn" id="skip" disabled>${icon(I.skip)} Skip</button><button class="btn primary big" id="main" style="min-height:56px">${icon(I.play)} Start</button><button class="btn" id="log" disabled>Log</button></div>
     <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost sm" id="end" hidden>End early</button></div>
@@ -81,8 +81,8 @@ export async function render() {
     engine.end(); teardown()
     const total = Math.round(engine.elapsed)
     const brew = { coffee_id: state.coffee?.id ?? null, method: r.method, dose_g: r.dose, water_g: r.water, temp_c: M.cold ? null : r.temp,
-      grind_label: r.grind_label, recipe: r.steps, actual: { pours: engine.actual, skips: engine.skips, ended_early: early }, total_seconds: total,
-      ai_recipe: { dose: r.dose, water: r.water, ratio: r.ratio, temp: r.temp, grind_microns: r.grind_microns, grind_label: r.grind_label, confidence: rec.confidence },
+      grind_label: r.grind_label, grind_setting: r.grind_setting_num != null ? String(r.grind_setting_num) : null, grinder: r.grinder ? (r.grinder.name || `${r.grinder.brand} ${r.grinder.model}`) : null, recipe: r.steps, actual: { pours: engine.actual, skips: engine.skips, ended_early: early }, total_seconds: total,
+      ai_recipe: { dose: r.dose, water: r.water, ratio: r.ratio, temp: r.temp, grind_microns: r.grind_microns, grind_label: r.grind_label, grind_setting: r.grind_setting_num ?? null, grinder_id: r.grinder?.id ?? null, confidence: rec.confidence },
       ai_reason: rec.why, modifications: rec.modifications ?? null, public: true }
     if (!uid()) { set({ draft: { ...brew, local: true, id: 'local-' + Date.now() } }); location.hash = '#/rate/local'; return }
     try { const saved = await brews.create(brew); set({ draft: null }); location.hash = `#/rate/${saved.id}` }

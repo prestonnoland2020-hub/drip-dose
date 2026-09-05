@@ -5,7 +5,9 @@
 // itself on the card in one line, so a brewer can see why a number moved and
 // disagree with it.
 //
-// Shifts are deliberately modest. The published per-method ranges in
+// Shifts are deliberately modest (grind shifts were halved after checking them
+// against real grinder charts: a light-roast V60 should land a click or two finer
+// than the grinder's usual pour-over setting, not at its espresso end). The published per-method ranges in
 // brew_reference are the frame; the label nudges within it.
 
 export const ORDER = ['light', 'medium-light', 'medium', 'medium-dark', 'dark', 'very-dark'] as const
@@ -15,12 +17,12 @@ export type RoastLevel = typeof ORDER[number]
 // and less soluble, so they want hotter water and a finer grind; dark roasts are
 // porous and give up their solubles fast, so the reverse.
 export const ROAST_SHIFT: Record<string, { temp: number; grind: number; bloom: number }> = {
-  'light':        { temp:  +2.5, grind: -0.20, bloom: 2.5 },
-  'medium-light': { temp:  +1.5, grind: -0.10, bloom: 2.5 },
+  'light':        { temp:  +2.5, grind: -0.12, bloom: 2.5 },
+  'medium-light': { temp:  +1.5, grind: -0.06, bloom: 2.5 },
   'medium':       { temp:   0,   grind:  0,    bloom: 2.5 },
-  'medium-dark':  { temp:  -2.0, grind: +0.12, bloom: 2.5 },
-  'dark':         { temp:  -4.0, grind: +0.25, bloom: 2.0 },
-  'very-dark':    { temp:  -5.5, grind: +0.35, bloom: 2.0 },
+  'medium-dark':  { temp:  -2.0, grind: +0.08, bloom: 2.5 },
+  'dark':         { temp:  -4.0, grind: +0.15, bloom: 2.0 },
+  'very-dark':    { temp:  -5.5, grind: +0.22, bloom: 2.0 },
 }
 
 export function shiftRoast(level: string, by: number) {
