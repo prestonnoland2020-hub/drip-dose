@@ -180,6 +180,9 @@
   .scan-result .sr-grind { font-size: 13px; }
   .scan-result .sr-note { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
   .scan-result .sr-conf { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .scan-result .sr-src { display: flex; flex-wrap: wrap; gap: 6px; }
+  .scan-result .sr-src a { font-size: 11.5px; color: var(--copper); background: var(--bg-2);
+    border-radius: 999px; padding: 4px 9px; text-decoration: none; border: 1px solid var(--line); }
   .scan-result .sr-x { justify-self: start; border: 0; background: transparent; color: var(--copper); font-weight: 700; font-size: 12.5px; padding: 2px 0; }
   .mycoffees { display: grid; gap: 6px; margin: -4px 0 16px; }
   .mycoffees[hidden] { display: none; }
@@ -1247,7 +1250,7 @@
       const r = await fetch(`${SB_URL}/functions/v1/scan-bag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ image, media_type: 'image/jpeg' }),
+        body: JSON.stringify({ image, media_type: 'image/jpeg', method: state.method.id }),
       });
       const out = await r.json();
       if (!r.ok) {
@@ -1263,14 +1266,14 @@
         console.warn('scan failed', out);
         toast(msg); return;
       }
-      applyScan(out.coffee, out.recipe);
+      applyScan(out.coffee, out.recipe, out.sources);
       loadMyCoffees();
     } catch (err) { toast('Scan failed — check your connection'); }
     finally { btn.disabled = false; paintAuth(); }
   });
 
-  function applyScan(coffee, recipe) {
-    if (recipe?.ratio) { state.ratio = recipe.ratio; $('ratio').value = state.ratio; }
+  function applyScan(coffee, recipe, sources) {
+    if (recipe?.ratio) { state.ratio = Math.round(recipe.ratio * 2) / 2; $('ratio').value = state.ratio; }
     if (coffee?.roast_level) {
       const map = { 'light': 'light', 'medium-light': 'light', 'medium': 'medium',
                     'medium-dark': 'dark', 'dark': 'dark', 'very-dark': 'dark' };
@@ -1278,13 +1281,19 @@
     }
     state.tune = { temp: 0, time: 0, ratio: 0 }; saveTune();
     const el = $('scan-result');
+    const esc = t => String(t).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+    const roaster = coffee.roaster && coffee.roaster !== 'Unknown roaster' ? esc(coffee.roaster) + ' · ' : '';
+    const srcs = (sources || []).slice(0, 3);
     el.hidden = false;
     el.innerHTML = `
-      <div class="sr-name">${coffee.roaster} · ${coffee.name}</div>
-      <div class="sr-meta">${[coffee.origin, coffee.process, coffee.roast_label].filter(Boolean).join(' · ') || 'Label read'}</div>
-      <div class="sr-grind"><b>Grind:</b> ${recipe.grind}</div>
-      ${(recipe.notes || []).map(n => `<div class="sr-note">${n}</div>`).join('')}
-      <div class="sr-conf">read with ${Math.round((coffee.confidence || 0) * 100)}% confidence · ${recipe.temp} °C · 1:${recipe.ratio}</div>
+      <div class="sr-name">${roaster}${esc(coffee.name)}</div>
+      <div class="sr-meta">${[coffee.origin, coffee.process, coffee.roast_label].filter(Boolean).map(esc).join(' · ') || 'Read from the label'}</div>
+      <div class="sr-grind"><b>Grind:</b> ${esc(recipe.grind)}${recipe.grind_microns ? ` · <b>${recipe.grind_microns} µm</b>` : ''}</div>
+      <div class="sr-grind"><b>Water:</b> ${recipe.temp} °C · <b>Ratio:</b> 1:${recipe.ratio}</div>
+      ${(recipe.notes || []).map(n => `<div class="sr-note">${esc(n)}</div>`).join('')}
+      <div class="sr-conf">from ${esc(recipe.basis || 'the label')}</div>
+      ${srcs.length ? `<div class="sr-src">${srcs.map(x =>
+          `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title).slice(0, 44)}</a>`).join('')}</div>` : ''}
       <button class="sr-x" id="sr-clear">Clear</button>`;
     $('sr-clear').addEventListener('click', () => { el.hidden = true; });
     renderAll(); toast('Recipe set from the bag');
@@ -1300,7 +1309,7 @@
       el.hidden = rows.length === 0;
       el.innerHTML = rows.map((c, i) => `<button data-i="${i}">${c.roaster} · ${c.name}<span>${c.roast_level || ''}</span></button>`).join('');
       el.querySelectorAll('button').forEach(b => b.addEventListener('click',
-        () => applyScan(rows[+b.dataset.i], rows[+b.dataset.i].recipe)));
+        () => applyScan(rows[+b.dataset.i], rows[+b.dataset.i].recipe, rows[+b.dataset.i].sources)));
     } catch (e) {}
   }
   initAuth();

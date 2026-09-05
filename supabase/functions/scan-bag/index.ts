@@ -1,9 +1,13 @@
 // POR — scan-bag
-// Reads a photo of a coffee bag and returns a brew recipe.
+// Photo of a bag in, brew recipe out.
 //
-// Order matters: identity and quota first (free), then the model (costs money).
-// Works with either OpenAI or Anthropic — whichever key is present.
-// Set SCAN_MODEL to override the default model.
+// Three stages, cheapest first, each one skippable:
+//   1. Read the label (vision).            costs a little
+//   2. Match the roaster against our table. free
+//   3. Research the coffee on the web.     costs a little, cached forever per coffee
+//
+// Stage 3 is an enhancement, never a dependency — if research fails the app still
+// returns a sound label-based recipe rather than nothing.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
@@ -12,53 +16,59 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
+const json = (b: unknown, s = 200) =>
+  new Response(JSON.stringify(b), { status: s, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
-const ROAST: Record<string, { temp: number; grind: string; ratio: number; bloom: number }> = {
-  'light':        { temp: 96, grind: 'Medium-fine — dense beans give up their sugars slowly', ratio: 16,   bloom: 2.5 },
-  'medium-light': { temp: 95, grind: 'Medium-fine',                                           ratio: 16,   bloom: 2.5 },
-  'medium':       { temp: 93, grind: 'Medium — like table salt',                              ratio: 16,   bloom: 2.5 },
-  'medium-dark':  { temp: 90, grind: 'Medium-coarse',                                         ratio: 16.5, bloom: 2.5 },
-  'dark':         { temp: 88, grind: 'Coarse — porous beans give up too much, too fast',      ratio: 17,   bloom: 2.0 },
-  'very-dark':    { temp: 86, grind: 'Coarse',                                                ratio: 17,   bloom: 2.0 },
-}
 const ORDER = ['light', 'medium-light', 'medium', 'medium-dark', 'dark', 'very-dark']
+// Roast shifts the middle of each method's published range: lighter roasts are denser
+// and want hotter water and a finer grind; dark roasts are porous and want the reverse.
+const ROAST_SHIFT: Record<string, { temp: number; grind: number; bloom: number }> = {
+  'light':        { temp:  +2.5, grind: -0.20, bloom: 2.5 },
+  'medium-light': { temp:  +1.5, grind: -0.10, bloom: 2.5 },
+  'medium':       { temp:   0,   grind:  0,    bloom: 2.5 },
+  'medium-dark':  { temp:  -2.0, grind: +0.12, bloom: 2.5 },
+  'dark':         { temp:  -4.0, grind: +0.25, bloom: 2.0 },
+  'very-dark':    { temp:  -5.5, grind: +0.35, bloom: 2.0 },
+}
 
-const slugify = (roaster: string, name: string) =>
-  `${roaster}|${name}`.toLowerCase().normalize('NFKD').replace(/[^a-z0-9|]+/g, '-').replace(/^-|-$/g, '')
+const slugify = (r: string, n: string) =>
+  `${r}|${n}`.toLowerCase().normalize('NFKD').replace(/[^a-z0-9|]+/g, '-').replace(/^-|-$/g, '')
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
-function shiftRoast(level: string, shift: number): string {
+function shiftRoast(level: string, by: number) {
   const i = ORDER.indexOf(level)
-  if (i < 0) return level
-  return ORDER[Math.max(0, Math.min(ORDER.length - 1, Math.round(i + shift)))]
+  return i < 0 ? level : ORDER[Math.max(0, Math.min(ORDER.length - 1, Math.round(i + by)))]
 }
 
-function buildRecipe(level: string, daysOffRoast: number | null) {
-  const base = ROAST[level] ?? ROAST['medium']
-  const r = { ...base, notes: [] as string[] }
-  if (daysOffRoast !== null) {
-    if (daysOffRoast <= 7) { r.bloom = 3.0; r.notes.push('Very fresh — still degassing, so bloom longer and expect a big dome.') }
-    else if (daysOffRoast >= 45) { r.bloom = 2.0; r.notes.push(`About ${daysOffRoast} days off roast — past its best. Grind a touch finer to compensate.`) }
-  }
-  return r
-}
+const READ_PROMPT = `You are reading a photo of a bag of coffee for a pour-over app.
 
-const PROMPT = `You are reading a photo of a bag of coffee for a pour-over app.
+Report ONLY what is printed on the bag or clearly visible. A wrong answer is worse than
+no answer, because someone will brew to it. If a field is not legible, use null.
+Never infer origin or varietal from the appearance of beans — that is not reliably
+possible and you must not guess it.
 
-Report ONLY what is printed on the bag or clearly visible. A wrong answer is worse
-than no answer, because someone will brew to it. If a field is not legible, use null.
-Do not infer origin or varietal from the beans themselves — that is not reliably
-possible from a photograph and you must not guess it.
+Practical notes:
+- The photo may be rotated or sideways. Read it anyway; never refuse over orientation.
+- If you recognise the roaster from a logo alone, say so in "roaster" and set
+  "roaster_from_logo" true. If you are not confident, leave roaster null — a wrong
+  roaster is worse than none.
+- Many bags show no roaster name in text. That is fine; still report the coffee's name.
+- Speciality bags often print a roast SCALE: a line labelled Light at one end and Dark
+  at the other, with a marker along it. Read the marker's position and map it to
+  roast_level. A marker at the Light end means "light", not "medium". Ignore any
+  Clean/Funky or Body scale beside it — that is flavour, not roast.
+- If no roast is indicated anywhere, leave roast_level null rather than guessing.
 
-Return a single JSON object and nothing else:
+Return one JSON object and nothing else:
 {
   "is_coffee_bag": boolean,
   "roaster": string|null,
+  "roaster_from_logo": boolean,
   "name": string|null,
   "origin": string|null,
   "process": string|null,
   "varietal": string|null,
+  "tasting_notes": string|null,
   "roast_label": string|null,
   "roast_level": "light"|"medium-light"|"medium"|"medium-dark"|"dark"|"very-dark"|null,
   "roast_date": string|null,
@@ -66,59 +76,91 @@ Return a single JSON object and nothing else:
   "notes": string|null
 }`
 
-// --- provider adapters -------------------------------------------------------
-async function readWithOpenAI(key: string, image: string, mediaType: string, model: string) {
+async function readLabel(key: string, image: string, mediaType: string, model: string) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
     body: JSON.stringify({
       model,
       response_format: { type: 'json_object' },
-      max_completion_tokens: 700,
       messages: [{ role: 'user', content: [
-        { type: 'text', text: PROMPT },
+        { type: 'text', text: READ_PROMPT },
         { type: 'image_url', image_url: { url: `data:${mediaType};base64,${image}`, detail: 'high' } },
       ]}],
     }),
   })
-  if (!res.ok) throw new Error(`openai ${res.status}: ${await res.text()}`)
+  if (!res.ok) throw new Error(`openai ${res.status}: ${(await res.text()).slice(0, 200)}`)
   const out = await res.json()
   return out.choices?.[0]?.message?.content ?? ''
 }
 
-async function readWithAnthropic(key: string, image: string, mediaType: string, model: string) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+// Stage 3: what does the web actually say about brewing THIS coffee?
+// Uses the Responses API's built-in web search so answers come with citations.
+async function research(key: string, model: string, coffee: any, method: string) {
+  const q = `Coffee: ${coffee.roaster && coffee.roaster !== 'Unknown roaster' ? coffee.roaster + ' — ' : ''}${coffee.name}` +
+    `${coffee.origin ? ` (${coffee.origin})` : ''}${coffee.roast_label ? `, labelled ${coffee.roast_label}` : ''}.
+
+Search the web for brewing guidance for this specific coffee, brewed as ${method}.
+Prefer the roaster's own brew guide above all else, then well-established sources
+(SCA, James Hoffmann, respected speciality publications). Do not invent numbers.
+
+Return one JSON object and nothing else:
+{
+  "found": boolean,
+  "roaster_identified": string|null,
+  "roaster_guide_found": boolean,
+  "grind_note": string|null,
+  "grind_microns": number|null,
+  "water_temp_c": number|null,
+  "ratio": number|null,
+  "advice": string|null,
+  "about": string|null,
+  "confidence": "high"|"medium"|"low"
+}
+
+Set found false and leave fields null if you cannot find real information about this
+coffee. A null is fine. A guess dressed up as a finding is not.`
+
+  const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({
-      model, max_tokens: 700,
-      messages: [{ role: 'user', content: [
-        { type: 'image', source: { type: 'base64', media_type: mediaType, data: image } },
-        { type: 'text', text: PROMPT },
-      ]}],
-    }),
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model, tools: [{ type: 'web_search' }], tool_choice: 'auto', input: q }),
   })
-  if (!res.ok) throw new Error(`anthropic ${res.status}: ${await res.text()}`)
+  if (!res.ok) throw new Error(`research ${res.status}: ${(await res.text()).slice(0, 200)}`)
   const out = await res.json()
-  return out.content?.[0]?.text ?? ''
+
+  // pull the text and any url citations out of the response
+  let text = out.output_text ?? ''
+  const sources: { title: string; url: string }[] = []
+  for (const item of out.output ?? []) {
+    for (const c of item.content ?? []) {
+      if (c.type === 'output_text') {
+        if (!text) text = c.text ?? ''
+        for (const a of c.annotations ?? []) {
+          if (a.type === 'url_citation' && a.url && !sources.some(s => s.url === a.url)) {
+            sources.push({ title: a.title ?? a.url, url: a.url })
+          }
+        }
+      }
+    }
+  }
+  const m = String(text).match(/\{[\s\S]*\}/)
+  if (!m) throw new Error('research returned no json')
+  return { data: JSON.parse(m[0]), sources: sources.slice(0, 5) }
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405)
 
-  const openaiKey = Deno.env.get('OPENAI_API_KEY')
-  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
-  if (!openaiKey && !anthropicKey) {
-    return json({ error: 'not_configured', message: 'Scanning is not switched on yet.' }, 503)
-  }
-  const provider = openaiKey ? 'openai' : 'anthropic'
-  const model = Deno.env.get('SCAN_MODEL') || (provider === 'openai' ? 'gpt-4o-mini' : 'claude-sonnet-4-5')
+  const key = Deno.env.get('OPENAI_API_KEY')
+  if (!key) return json({ error: 'not_configured', message: 'Scanning is not switched on yet.' }, 503)
+  const scanModel = Deno.env.get('SCAN_MODEL') || 'gpt-4o'
+  const researchModel = Deno.env.get('RESEARCH_MODEL') || 'gpt-5.6-luna'
 
-  // --- who is asking, and do they have scans left ---
-  const authHeader = req.headers.get('Authorization') ?? ''
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-  const { data: userData, error: userErr } = await admin.auth.getUser(authHeader.replace('Bearer ', ''))
+  const { data: userData, error: userErr } =
+    await admin.auth.getUser((req.headers.get('Authorization') ?? '').replace('Bearer ', ''))
   if (userErr || !userData?.user) return json({ error: 'unauthorised' }, 401)
   const user = userData.user
 
@@ -131,47 +173,103 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => null)
   const image: string | undefined = body?.image
   const mediaType: string = body?.media_type ?? 'image/jpeg'
+  const method: string = body?.method ?? 'v60'
   if (!image) return json({ error: 'no_image' }, 400)
   if (image.length > 8_000_000) return json({ error: 'image_too_large', message: 'Resize before uploading.' }, 413)
 
-  // --- read the label ---
-  let text = ''
-  try {
-    text = provider === 'openai'
-      ? await readWithOpenAI(openaiKey!, image, mediaType, model)
-      : await readWithAnthropic(anthropicKey!, image, mediaType, model)
-  } catch (e) {
-    return json({ error: 'vision_failed', provider, model, detail: String(e) }, 502)
-  }
-
+  // ---- stage 1: read the label -------------------------------------------
   let parsed: any
-  try { parsed = JSON.parse(String(text).replace(/^```(?:json)?|```$/gm, '').trim()) }
-  catch { return json({ error: 'unparseable', text }, 502) }
-
-  if (!parsed.is_coffee_bag || !parsed.roaster || !parsed.name) {
-    return json({ error: 'not_recognised', message: "That doesn't look like a coffee bag label. Try the front of the bag, in good light.", parsed }, 422)
+  try {
+    const text = await readLabel(key, image, mediaType, scanModel)
+    const m = String(text).replace(/^```(?:json)?|```$/gm, '').trim().match(/\{[\s\S]*\}/)
+    if (!m) throw new Error('no json in reply')
+    parsed = JSON.parse(m[0])
+  } catch (e) {
+    return json({ error: 'vision_failed', model: scanModel, detail: String(e).slice(0, 300) }, 502)
   }
+  if (!parsed.is_coffee_bag || (!parsed.name && !parsed.roaster)) {
+    return json({ error: 'not_recognised',
+      message: 'I can see a photo but no coffee name on it. Try the face of the bag with the name in frame.',
+      parsed }, 422)
+  }
+  if (!parsed.roaster) parsed.roaster = 'Unknown roaster'
+  if (!parsed.name) parsed.name = parsed.roaster
 
-  // --- roaster calibration: a "medium" is not the same everywhere ---
+  // ---- stage 2: reference lookups (free) ---------------------------------
+  const { data: ref } = await admin.from('brew_reference').select('*').eq('method', method).maybeSingle()
+  const { data: allRoasters } = await admin.from('roasters').select('*')
+  const target = norm(parsed.roaster)
+  const roaster = (allRoasters ?? []).find(r =>
+    norm(r.name) === target || (r.aliases ?? []).some((a: string) => norm(a) === target)) ??
+    (allRoasters ?? []).find(r => target.length > 3 &&
+      (norm(r.name).includes(target) || target.includes(norm(r.name))))
+
   let level = parsed.roast_level ?? 'medium'
-  let calNote: string | null = null
-  const { data: cal } = await admin.from('roaster_calibration')
-    .select('*').eq('roaster', String(parsed.roaster).toLowerCase().trim()).maybeSingle()
-  if (cal && Number(cal.shift) !== 0) {
-    const adjusted = shiftRoast(level, Number(cal.shift))
-    if (adjusted !== level) {
-      calNote = `${parsed.roaster} runs ${Number(cal.shift) > 0 ? 'darker' : 'lighter'} than the label suggests, so this is treated as ${adjusted.replace('-', ' ')}.`
-      level = adjusted
+  const notes: string[] = []
+  if (roaster && Number(roaster.roast_bias) !== 0 && roaster.confidence !== 'low') {
+    const adj = shiftRoast(level, Number(roaster.roast_bias))
+    if (adj !== level) {
+      notes.push(`${roaster.name} ${Number(roaster.roast_bias) > 0 ? 'roasts darker' : 'roasts lighter'} than the label suggests, so this is treated as ${adj.replace('-', ' ')}.`)
+      level = adj
     }
   }
 
-  const days = parsed.roast_date
-    ? Math.max(0, Math.round((Date.now() - Date.parse(parsed.roast_date)) / 86_400_000))
-    : null
-  const recipe = buildRecipe(level, Number.isFinite(days as number) ? days : null)
-  if (calNote) recipe.notes.unshift(calNote)
+  // Start from the method's published middle, then shift for roast.
+  const sh = ROAST_SHIFT[level] ?? ROAST_SHIFT['medium']
+  const midTemp = ref ? (ref.temp_min_c + ref.temp_max_c) / 2 : 93
+  const midGrind = ref ? (ref.grind_min_um + ref.grind_max_um) / 2 : 600
+  const recipe: any = {
+    temp: ref ? Math.max(ref.temp_min_c, Math.min(ref.temp_max_c, Math.round(midTemp + sh.temp))) : Math.round(midTemp + sh.temp),
+    grind_microns: ref ? Math.max(ref.grind_min_um, Math.min(ref.grind_max_um, Math.round(midGrind * (1 + sh.grind)))) : Math.round(midGrind * (1 + sh.grind)),
+    grind: ref?.grind_label ?? 'Medium',
+    ratio: ref ? Number(((ref.ratio_min + ref.ratio_max) / 2).toFixed(1)) : 16,
+    bloom: sh.bloom,
+    roast_level: level,
+    notes,
+    basis: ref ? `${ref.display_name} published range, adjusted for a ${level.replace('-', ' ')} roast` : 'method defaults',
+  }
+  if (ref?.note) notes.push(ref.note)
 
+  const days = parsed.roast_date
+    ? Math.max(0, Math.round((Date.now() - Date.parse(parsed.roast_date)) / 86_400_000)) : null
+  if (days !== null && Number.isFinite(days)) {
+    if (days <= 7) { recipe.bloom = 3.0; notes.push('Very fresh — still degassing, so bloom longer and expect a big dome.') }
+    else if (days >= 45) { notes.push(`About ${days} days off roast — grind a touch finer to compensate.`) }
+  }
+
+  // ---- stage 3: research, cached per coffee -------------------------------
   const slug = slugify(parsed.roaster, parsed.name)
+  const { data: existing } = await admin.from('coffees').select('*').eq('slug', slug).maybeSingle()
+  let researchData = existing?.research ?? null
+  let sources = existing?.sources ?? null
+  let researched = !!existing?.researched_at
+  let researchError: string | null = null
+
+  if (!researched) {
+    try {
+      const r = await research(key, researchModel, parsed, ref?.display_name ?? method)
+      if (r.data?.found) {
+        researchData = r.data; sources = r.sources; researched = true
+        if (r.data.water_temp_c)  recipe.temp = Math.round(r.data.water_temp_c)
+        if (r.data.grind_microns) recipe.grind_microns = Math.round(r.data.grind_microns)
+        if (r.data.grind_note)    recipe.grind = r.data.grind_note
+        if (r.data.ratio)         recipe.ratio = Number(r.data.ratio)
+        if (r.data.roaster_guide_found) recipe.basis = "the roaster's own brew guide"
+        else recipe.basis = 'published guidance found for this coffee'
+        if (r.data.advice) notes.push(r.data.advice)
+      } else { researched = true }
+    } catch (e) {
+      researchError = String(e).slice(0, 200)   // enhancement only — never fatal
+    }
+  } else if (researchData) {
+    if (researchData.water_temp_c)  recipe.temp = Math.round(researchData.water_temp_c)
+    if (researchData.grind_microns) recipe.grind_microns = Math.round(researchData.grind_microns)
+    if (researchData.grind_note)    recipe.grind = researchData.grind_note
+    if (researchData.ratio)         recipe.ratio = Number(researchData.ratio)
+    recipe.basis = 'saved research for this coffee'
+    if (researchData.advice) notes.push(researchData.advice)
+  }
+
   const { data: coffee } = await admin.from('coffees').upsert({
     slug,
     roaster: parsed.roaster,
@@ -183,16 +281,22 @@ Deno.serve(async (req) => {
     roast_level: level,
     confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5)),
     recipe,
+    research: researchData,
+    sources,
+    researched_at: researched ? new Date().toISOString() : null,
     source: 'vision',
   }, { onConflict: 'slug' }).select().single()
 
-  await admin.from('scans').insert({ user_id: user.id, coffee_id: coffee?.id ?? null, cache_hit: false, raw: parsed })
+  await admin.from('scans').insert({
+    user_id: user.id, coffee_id: coffee?.id ?? null, cache_hit: !!existing?.researched_at, raw: parsed,
+  })
   await admin.from('profiles').update({ scans_used: profile.scans_used + 1 }).eq('id', user.id)
 
   return json({
-    coffee, recipe, cache_hit: false, provider, model,
-    scans_used: profile.scans_used + 1,
-    scan_limit: profile.scan_limit,
-    plan: profile.plan,
+    coffee, recipe, sources: sources ?? [],
+    research_error: researchError,
+    matched_roaster: roaster?.name ?? null,
+    cache_hit: !!existing?.researched_at,
+    scans_used: profile.scans_used + 1, scan_limit: profile.scan_limit, plan: profile.plan,
   })
 })
