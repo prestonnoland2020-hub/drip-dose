@@ -34,11 +34,14 @@ export function parse() {
   return { name: name || '', params: rest.map(decodeURIComponent), query: Object.fromEntries(new URLSearchParams(qs || '')) }
 }
 async function route() {
-  const { name, params, query } = parse()
+  let { name, params, query } = parse()
+  // Sign in comes first. Everything in POR is yours — coffees, brews, setup — so there is
+  // nothing useful to show a stranger, and the loop cannot start without an account.
+  if (!session && name !== 'signin') { location.replace('#/signin'); return }
   const loader = routes[name] || routes['']
   if (current?.destroy) { try { current.destroy() } catch {} }
   document.querySelectorAll('#tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === TAB_OF[name] ? 'page' : 'false'))
-  $('tabs').classList.toggle('hide', name === 'timer')
+  $('tabs').classList.toggle('hide', name === 'timer' || name === 'signin')
   $('sheet').hidden = true
   try {
     const mod = await loader()
@@ -51,9 +54,11 @@ async function route() {
 
 window.addEventListener('hashchange', route)
 window.addEventListener('DOMContentLoaded', async () => {
-  await initAuth()
+  // Never let a slow or blocked SDK load leave a blank screen: after 6 s we route anyway.
+  try { await Promise.race([initAuth(), new Promise((_, rej) => setTimeout(() => rej(new Error('auth timeout')), 6000))]) }
+  catch (e) { console.warn('auth init failed', e) }
   onAuth(async s => {
-    if (!s) return
+    if (!s) { if (parse().name !== 'signin') navigate('#/signin'); return }
     if (parse().name === 'signin') navigate('#/home')
     // First sign-in: ask for the grinder once. Skippable, and never asked again after that.
     try {
