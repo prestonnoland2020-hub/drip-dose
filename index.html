@@ -1251,10 +1251,16 @@
       });
       const out = await r.json();
       if (!r.ok) {
-        const msg = out.error === 'limit_reached' ? `That's your ${out.scan_limit} free scans used.`
-          : out.error === 'not_recognised' ? out.message
-          : out.error === 'not_configured' ? 'Scanning is not switched on yet.'
-          : 'Could not read that photo — try the front of the bag in good light.';
+        // Say what actually went wrong. Blaming the photo for an API failure sends
+        // people re-shooting a perfectly good picture.
+        const msg = out.error === 'limit_reached'   ? `That's your ${out.scan_limit} free scans used.`
+          : out.error === 'not_recognised'  ? out.message
+          : out.error === 'not_configured'  ? 'Scanning is not switched on yet.'
+          : out.error === 'vision_failed'   ? `The reader failed (${out.model}). Not your photo — tell Claude.`
+          : out.error === 'unparseable'     ? 'The reader replied in the wrong format. Not your photo — tell Claude.'
+          : out.error === 'image_too_large' ? 'That photo is too big — try again.'
+          : `Scan failed (${out.error || r.status}). Not your photo — tell Claude.`;
+        console.warn('scan failed', out);
         toast(msg); return;
       }
       applyScan(out.coffee, out.recipe);
