@@ -70,9 +70,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (parse().name === 'signin') navigate('#/home')
     // First sign-in: ask for the grinder once. Skippable, and never asked again after that.
     try {
-      if (localStorage.getItem('por.setupSkipped')) return
-      const setup = await import('./api/setup.js'); const items = await setup.get()
-      if (!items.length && parse().name !== 'setup') navigate('#/setup?first=1')
+      if (localStorage.getItem('por.setupSkipped') || ['setup', 'add', 'recipe', 'timer', 'rate'].includes(parse().name)) return
+      const gear = await import('./api/setup.js'); const items = await gear.get()
+      if (!items.length) { navigate('#/setup?first=1'); return }
+      // Gear known, but never a coffee: go straight to the bag once.
+      if (!localStorage.getItem('por.coffeeSkipped')) {
+        const lib = await import('./api/library.js'); const mine = await lib.mine().catch(() => [])
+        if (!mine.length) navigate('#/add?first=1')
+      }
     } catch {}
   })
   route()

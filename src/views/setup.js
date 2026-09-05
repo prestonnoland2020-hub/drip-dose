@@ -13,20 +13,21 @@ export async function render({ query }) {
   const first = query.first === '1'
   const items = await setup.get()
   mount(`${top('', { back: first ? null : '#/profile' })}
-    <div class="eyebrow">${first ? 'One more thing' : 'Profile'}</div>
+    <div class="eyebrow">${first ? 'Step 1 of 2' : 'Profile'}</div>
     <h1 style="margin-top:2px">Your setup</h1>
-    <p class="muted" style="margin:0 0 14px">Tell POR your grinder and it gives you a setting, not a vague “medium-fine”. Add as much gear as you like; pick what you're using at brew time.</p>
+    <p class="muted" style="margin:0 0 14px">${first ? 'What do you grind and brew with? With your grinder, POR gives you a number on the dial instead of “medium-fine”.' : 'Tell POR your grinder and it gives you a setting, not a vague “medium-fine”. Add as much gear as you like; pick what you\'re using at brew time.'}</p>
     <div class="grid2" style="margin-bottom:14px"><button class="btn primary" id="photo">${icon(I.camera)} Photo of it</button><button class="btn" id="type">${icon(I.search)} Search</button></div>
     <input type="file" id="cam" accept="image/*" capture="environment" hidden>
     <div id="search" hidden><div class="field"><input class="input" id="q" placeholder="OXO, Baratza Encore, V60, Chemex…" autocomplete="off"></div><div id="results" class="list" style="margin-top:8px"></div></div>
     <div id="items" class="list" style="margin-top:14px">${itemsHtml(items)}</div>
-    ${first ? `<div class="section"><a class="btn primary big" href="#/home" id="done">Done</a><div style="text-align:center;margin-top:10px"><a class="small muted" href="#/home" id="skip">Skip for now</a></div></div>` : ''}`)
+    ${first ? `<div class="section"><a class="btn primary big" href="#/add?first=1" id="done">Next: your first coffee</a><div style="text-align:center;margin-top:10px"><a class="small muted" href="#/add?first=1" id="skip">Skip for now</a></div></div>` : ''}`)
   $('type').onclick = () => { $('search').hidden = false; $('q').focus() }
   $('photo').onclick = () => $('cam').click()
   $('cam').onchange = e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) fromPhoto(f) }
   let t = 0
   $('q').oninput = () => { clearTimeout(t); t = setTimeout(doSearch, 200) }
   $('skip')?.addEventListener('click', () => { try { localStorage.setItem('por.setupSkipped', '1') } catch {} })
+  $('done')?.addEventListener('click', () => { try { localStorage.setItem('por.setupSkipped', '1') } catch {} })
   bindItems()
 }
 

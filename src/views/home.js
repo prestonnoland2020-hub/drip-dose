@@ -7,8 +7,8 @@ import * as brews from '../api/brews.js'
 import * as social from '../api/social.js'
 import * as library from '../api/library.js'
 import * as profile from '../api/profile.js'
-import * as setup from '../api/setup.js'
 import { postCard, bindPosts, methodName } from './shared.js'
+import * as setup from '../api/setup.js'
 
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Late night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening' }
 
@@ -24,6 +24,7 @@ export async function render() {
     <div class="eyebrow">${greeting()}${session ? '' : ' · <a href="#/signin" style="color:var(--accent)">sign in</a>'}</div>
     <h1 style="margin-top:2px">${c ? 'Your coffee' : 'What are you drinking?'}</h1>
     <div id="hero">${c ? heroCard(c) : `<div class="card"><p class="muted" style="margin:0 0 12px">Scan a bag and POR works out how to brew it, guides you through it, and gets better every time you rate a cup.</p><a class="btn primary big" href="#/add">${icon(I.camera)} Add a coffee</a></div>`}</div>
+    <div id="missing"></div>
     <div id="rec" class="section"></div>
     <div id="last" class="section"></div>
     <div id="community" class="section"></div>
@@ -31,6 +32,7 @@ export async function render() {
 
   if (c) { loadRec(c); loadLast(c); loadCommunity(c) }
   loadFeed()
+  if (uid()) { const items = await setup.get().catch(() => []); if (!setup.activeGrinder(items)) $('missing').innerHTML = `<a class="card row between" href="#/setup" style="margin-top:12px"><div><b>Add your grinder</b><div class="small muted">Recipes become a number on your dial, not “medium-fine”.</div></div>${icon(I.chev)}</a>` }
 }
 
 function heroCard(c) {

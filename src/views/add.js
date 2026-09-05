@@ -17,17 +17,19 @@ function shrink(file, max = 1024) {
   })
 }
 
-export async function render() {
-  mount(`${top('Add coffee', { back: '#/brew' })}
-    <div class="list">
-      <button class="card row" id="take"><span class="iconbtn">${icon(I.camera)}</span><div style="text-align:left"><b>Take a photo of the bag</b><div class="small muted">The label is read, nothing is stored.</div></div></button>
-      <button class="card row" id="upload"><span class="iconbtn">${icon(I.upload)}</span><div style="text-align:left"><b>Upload a photo</b><div class="small muted">From your camera roll.</div></div></button>
-    </div>
+let first = false
+export async function render({ query }) {
+  first = query.first === '1'
+  mount(`${first ? `${top('')}<div class="eyebrow">Step 2 of 2</div><h1 style="margin-top:2px">Your first coffee</h1><p class="muted" style="margin:0 0 14px">Photograph the bag and POR reads it, works out the recipe for your setup, and you're brewing.</p>` : top('Add coffee', { back: '#/brew' })}
+    <div class="grid2"><button class="btn primary" id="take">${icon(I.camera)} Scan bag</button><button class="btn" id="type">${icon(I.search)} Search</button></div>
+    <div class="row" style="justify-content:center;margin:10px 0 4px"><button class="small muted" id="upload" style="min-height:36px">${icon(I.upload)} or upload a photo from your camera roll</button></div>
     <input type="file" id="cam" accept="image/*" capture="environment" hidden><input type="file" id="pick" accept="image/*" hidden>
-    <div class="section"><div class="field"><label for="q">Or search</label><input class="input" id="q" placeholder="Roaster or coffee name" autocomplete="off"></div><div id="results" class="list" style="margin-top:10px"></div></div>
+    <div class="section" id="search"><div class="field"><input class="input" id="q" placeholder="Roaster or coffee name — if the bag isn't with you" autocomplete="off"></div><div id="results" class="list" style="margin-top:10px"></div></div>
     <div class="section" id="mine"></div>
-    <div class="section"><button class="btn ghost" id="manual">${icon(I.plus)} Enter it by hand</button></div>`)
+    <div class="section"><button class="btn ghost" id="manual">${icon(I.plus)} Enter it by hand</button>${first ? `<div style="text-align:center;margin-top:12px"><a class="small muted" href="#/home" id="skipc">I'll do this later</a></div>` : ''}</div>`)
+  $('skipc')?.addEventListener('click', () => { try { localStorage.setItem('por.coffeeSkipped', '1') } catch {} })
   $('take').onclick = () => { if (!uid()) return location.hash = '#/signin'; $('cam').click() }
+  $('type').onclick = () => { $('q').focus(); $('q').scrollIntoView({ block: 'center', behavior: 'smooth' }) }
   $('upload').onclick = () => { if (!uid()) return location.hash = '#/signin'; $('pick').click() }
   $('cam').onchange = $('pick').onchange = e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) scanFile(f) }
   let t = 0
@@ -116,5 +118,5 @@ async function choose(c) {
   set({ coffee: c, rec: null })
   if (uid()) library.set(c.id, { status: 'drinking' }).catch(() => {})
   toast(`${c.name} is on the counter`)
-  location.hash = '#/brew'
+  location.hash = first ? '#/recipe' : '#/brew'
 }
