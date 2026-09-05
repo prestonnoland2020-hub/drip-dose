@@ -95,20 +95,35 @@ async function readLabel(key: string, image: string, mediaType: string, model: s
 }
 
 // Stage 3: what does the web actually say about brewing THIS coffee?
+// Method-agnostic on purpose: the roaster publishes guidance for one method,
+// and the per-method ranges are handled deterministically in stage 2. Asking the
+// web the same question once per coffee means switching method costs nothing.
 // Uses the Responses API's built-in web search so answers come with citations.
-async function research(key: string, model: string, coffee: any, method: string) {
-  const q = `Coffee: ${coffee.roaster && coffee.roaster !== 'Unknown roaster' ? coffee.roaster + ' — ' : ''}${coffee.name}` +
+async function research(key: string, model: string, coffee: any) {
+  const named = coffee.roaster && coffee.roaster !== 'Unknown roaster' ? coffee.roaster + ' — ' : ''
+  const q = `Coffee: ${named}${coffee.name}` +
     `${coffee.origin ? ` (${coffee.origin})` : ''}${coffee.roast_label ? `, labelled ${coffee.roast_label}` : ''}.
 
-Search the web for brewing guidance for this specific coffee, brewed as ${method}.
-Prefer the roaster's own brew guide above all else, then well-established sources
-(SCA, James Hoffmann, respected speciality publications). Do not invent numbers.
+Search the web for brewing guidance for this specific coffee. Prefer the roaster's own
+brew guide above all else, then well-established sources (SCA, James Hoffmann, respected
+speciality publications). Do not invent numbers.
+
+If the guide you find is written for one brew method, say which in "guide_method" — the
+app applies those numbers only to that method and shows them as a note elsewhere.
+
+Rules for the text fields, which appear on a small phone card:
+- "advice": at most 20 words, and only if it tells the brewer to DO something specific.
+  If you found nothing coffee-specific, use null. Never write a sentence whose content is
+  that you found nothing — null already says that.
+- "about": at most 20 words on what this coffee tastes like or where it is from. Null if unknown.
+- Never include disclaimers, caveats, or instructions about transferring parameters.
 
 Return one JSON object and nothing else:
 {
   "found": boolean,
   "roaster_identified": string|null,
   "roaster_guide_found": boolean,
+  "guide_method": "v60"|"chemex"|"kalita"|"aeropress"|"frenchpress"|"clever"|null,
   "grind_note": string|null,
   "grind_microns": number|null,
   "water_temp_c": number|null,
@@ -146,7 +161,76 @@ coffee. A null is fine. A guess dressed up as a finding is not.`
   }
   const m = String(text).match(/\{[\s\S]*\}/)
   if (!m) throw new Error('research returned no json')
-  return { data: JSON.parse(m[0]), sources: sources.slice(0, 5) }
+  const data = JSON.parse(m[0])
+  // "Found" has to mean something usable, or the card fills up with polite nothing.
+  const usable = data.water_temp_c || data.ratio || data.grind_microns || data.grind_note || data.advice || data.about
+  if (!usable) data.found = false
+  return { data, sources: sources.slice(0, 5) }
+}
+
+// Turn the coffee's facts plus the method's published ranges into one recipe.
+// Pure and cheap, so it can run again the moment someone changes method.
+function deriveRecipe(parsed: any, ref: any, roaster: any, researchData: any, method: string) {
+  let level = parsed.roast_level ?? 'medium'
+  const notes: string[] = []
+  if (roaster && Number(roaster.roast_bias) !== 0 && roaster.confidence !== 'low') {
+    const adj = shiftRoast(level, Number(roaster.roast_bias))
+    if (adj !== level) {
+      notes.push(`${roaster.name} ${Number(roaster.roast_bias) > 0 ? 'roasts darker' : 'roasts lighter'} than the label suggests, so this is treated as ${adj.replace('-', ' ')}.`)
+      level = adj
+    }
+  }
+
+  const sh = ROAST_SHIFT[level] ?? ROAST_SHIFT['medium']
+  const midTemp = ref ? (ref.temp_min_c + ref.temp_max_c) / 2 : 93
+  const midGrind = ref ? (ref.grind_min_um + ref.grind_max_um) / 2 : 600
+  const recipe: any = {
+    method,
+    method_name: ref?.display_name ?? method,
+    temp: ref ? Math.max(ref.temp_min_c, Math.min(ref.temp_max_c, Math.round(midTemp + sh.temp))) : Math.round(midTemp + sh.temp),
+    grind_microns: ref ? Math.max(ref.grind_min_um, Math.min(ref.grind_max_um, Math.round(midGrind * (1 + sh.grind)))) : Math.round(midGrind * (1 + sh.grind)),
+    grind: ref?.grind_label ?? 'Medium',
+    ratio: ref ? Number(((ref.ratio_min + ref.ratio_max) / 2).toFixed(1)) : 16,
+    bloom: sh.bloom,
+    roast_level: level,
+    notes,
+    guide: null as any,
+    basis: ref ? `${ref.display_name} published ranges, set for a ${level.replace('-', ' ')} roast` : 'method defaults',
+  }
+
+  const days = parsed.roast_date
+    ? Math.max(0, Math.round((Date.now() - Date.parse(parsed.roast_date)) / 86_400_000)) : null
+  if (days !== null && Number.isFinite(days)) {
+    if (days <= 7) { recipe.bloom = 3.0; notes.push('Very fresh — still degassing, so bloom longer and expect a big dome.') }
+    else if (days >= 45) { notes.push(`About ${days} days off roast — grind a touch finer to compensate.`) }
+  }
+
+  // Research numbers override the published middle ONLY for the method they were
+  // written for. A roaster's V60 temperature is not a French press temperature.
+  if (researchData?.found) {
+    const gm = researchData.guide_method
+    const appliesHere = !gm || gm === method
+    if (appliesHere) {
+      if (researchData.water_temp_c)  recipe.temp = Math.round(researchData.water_temp_c)
+      if (researchData.grind_microns) recipe.grind_microns = Math.round(researchData.grind_microns)
+      if (researchData.grind_note)    recipe.grind = researchData.grind_note
+      if (researchData.ratio)         recipe.ratio = Number(researchData.ratio)
+      recipe.basis = researchData.roaster_guide_found
+        ? "the roaster's own brew guide"
+        : 'published guidance found for this coffee'
+      if (researchData.advice) notes.push(researchData.advice)
+    } else {
+      // Still worth showing, just not worth applying.
+      const bits = [
+        researchData.ratio ? `1:${researchData.ratio}` : null,
+        researchData.water_temp_c ? `${Math.round(researchData.water_temp_c)} °C` : null,
+        researchData.grind_note,
+      ].filter(Boolean)
+      if (bits.length) recipe.guide = { method: gm, text: bits.join(' · ') }
+    }
+  }
+  recipe.about = researchData?.about ?? null
+  return recipe
 }
 
 Deno.serve(async (req) => {
@@ -167,47 +251,64 @@ Deno.serve(async (req) => {
 
   const { data: profile } = await admin.from('profiles').select('*').eq('id', user.id).single()
   if (!profile) return json({ error: 'no_profile' }, 403)
-  if (profile.plan === 'free' && profile.scans_used >= profile.scan_limit) {
-    return json({ error: 'limit_reached', scans_used: profile.scans_used, scan_limit: profile.scan_limit }, 402)
-  }
 
   const body = await req.json().catch(() => null)
   const image: string | undefined = body?.image
   const mediaType: string = body?.media_type ?? 'image/jpeg'
   const method: string = body?.method ?? 'v60'
-  if (!image) return json({ error: 'no_image' }, 400)
-  if (image.length > 8_000_000) return json({ error: 'image_too_large', message: 'Resize before uploading.' }, 413)
+  const coffeeId: string | undefined = body?.coffee_id
 
-  // ---- stage 1: read the label -------------------------------------------
-  // Try the configured model, then fall back through known-good ones. Model
-  // availability varies by account, and a scan should not die over a name.
-  const candidates = [...new Set([scanModel, 'gpt-4o', 'gpt-4o-mini', 'gpt-5.6-luna'])]
+  // Two ways in. A photo is a scan: it costs a vision call and one of your scans.
+  // A coffee_id is a re-tailor — same bag, different brewer — and costs nothing,
+  // because everything expensive about that coffee is already on the row.
+  const retailor = !image && !!coffeeId
+  if (!image && !coffeeId) return json({ error: 'no_image' }, 400)
+  if (image && image.length > 8_000_000) return json({ error: 'image_too_large', message: 'Resize before uploading.' }, 413)
+  if (!retailor && profile.plan === 'free' && profile.scans_used >= profile.scan_limit) {
+    return json({ error: 'limit_reached', scans_used: profile.scans_used, scan_limit: profile.scan_limit }, 402)
+  }
+
+  // ---- stage 1: know which coffee we are talking about --------------------
   let parsed: any = null
-  const attempts: { model: string; error: string }[] = []
-  for (const m0 of candidates) {
-    try {
-      const text = await readLabel(key, image, mediaType, m0)
-      const m = String(text).replace(/^```(?:json)?|```$/gm, '').trim().match(/\{[\s\S]*\}/)
-      if (!m) throw new Error('no json in reply: ' + String(text).slice(0, 120))
-      parsed = JSON.parse(m[0]); usedScanModel = m0
-      break
-    } catch (e) {
-      attempts.push({ model: m0, error: String(e).slice(0, 200) })
+  let existing: any = null
+
+  if (retailor) {
+    const { data } = await admin.from('coffees').select('*').eq('id', coffeeId).maybeSingle()
+    if (!data) return json({ error: 'unknown_coffee' }, 404)
+    existing = data
+    parsed = { ...(data.raw ?? {}), roaster: data.roaster, name: data.name, origin: data.origin,
+               process: data.process, varietal: data.varietal, roast_label: data.roast_label,
+               roast_level: data.roast_level, confidence: data.confidence }
+  } else {
+    // Try the configured model, then fall back through known-good ones. Model
+    // availability varies by account, and a scan should not die over a name.
+    const candidates = [...new Set([scanModel, 'gpt-4o', 'gpt-4o-mini', 'gpt-4.1'])]
+    const attempts: { model: string; error: string }[] = []
+    for (const m0 of candidates) {
+      try {
+        const text = await readLabel(key, image!, mediaType, m0)
+        const m = String(text).replace(/^```(?:json)?|```$/gm, '').trim().match(/\{[\s\S]*\}/)
+        if (!m) throw new Error('no json in reply: ' + String(text).slice(0, 120))
+        parsed = JSON.parse(m[0]); usedScanModel = m0
+        break
+      } catch (e) {
+        attempts.push({ model: m0, error: String(e).slice(0, 200) })
+      }
     }
+    if (!parsed) {
+      await admin.from('scan_errors').insert(
+        attempts.map(a => ({ stage: 'vision', model: a.model, detail: a.error })))
+      return json({ error: 'vision_failed', model: scanModel, attempts,
+        detail: attempts[0]?.error ?? 'unknown' }, 502)
+    }
+    if (!parsed.is_coffee_bag || (!parsed.name && !parsed.roaster)) {
+      return json({ error: 'not_recognised',
+        message: 'I can see a photo but no coffee name on it. Try the face of the bag with the name in frame.',
+        parsed }, 422)
+    }
+    if (!parsed.roaster) parsed.roaster = 'Unknown roaster'
+    if (!parsed.name) parsed.name = parsed.roaster
   }
-  if (!parsed) {
-    await admin.from('scan_errors').insert(
-      attempts.map(a => ({ stage: 'vision', model: a.model, detail: a.error })))
-    return json({ error: 'vision_failed', model: scanModel, attempts,
-      detail: attempts[0]?.error ?? 'unknown' }, 502)
-  }
-  if (!parsed.is_coffee_bag || (!parsed.name && !parsed.roaster)) {
-    return json({ error: 'not_recognised',
-      message: 'I can see a photo but no coffee name on it. Try the face of the bag with the name in frame.',
-      parsed }, 422)
-  }
-  if (!parsed.roaster) parsed.roaster = 'Unknown roaster'
-  if (!parsed.name) parsed.name = parsed.roaster
 
   // ---- stage 2: reference lookups (free) ---------------------------------
   const { data: ref } = await admin.from('brew_reference').select('*').eq('method', method).maybeSingle()
@@ -218,42 +319,12 @@ Deno.serve(async (req) => {
     (allRoasters ?? []).find(r => target.length > 3 &&
       (norm(r.name).includes(target) || target.includes(norm(r.name))))
 
-  let level = parsed.roast_level ?? 'medium'
-  const notes: string[] = []
-  if (roaster && Number(roaster.roast_bias) !== 0 && roaster.confidence !== 'low') {
-    const adj = shiftRoast(level, Number(roaster.roast_bias))
-    if (adj !== level) {
-      notes.push(`${roaster.name} ${Number(roaster.roast_bias) > 0 ? 'roasts darker' : 'roasts lighter'} than the label suggests, so this is treated as ${adj.replace('-', ' ')}.`)
-      level = adj
-    }
+  // ---- stage 3: research, once per coffee, cached forever -----------------
+  const slug = existing?.slug ?? slugify(parsed.roaster, parsed.name)
+  if (!existing) {
+    const { data } = await admin.from('coffees').select('*').eq('slug', slug).maybeSingle()
+    existing = data
   }
-
-  // Start from the method's published middle, then shift for roast.
-  const sh = ROAST_SHIFT[level] ?? ROAST_SHIFT['medium']
-  const midTemp = ref ? (ref.temp_min_c + ref.temp_max_c) / 2 : 93
-  const midGrind = ref ? (ref.grind_min_um + ref.grind_max_um) / 2 : 600
-  const recipe: any = {
-    temp: ref ? Math.max(ref.temp_min_c, Math.min(ref.temp_max_c, Math.round(midTemp + sh.temp))) : Math.round(midTemp + sh.temp),
-    grind_microns: ref ? Math.max(ref.grind_min_um, Math.min(ref.grind_max_um, Math.round(midGrind * (1 + sh.grind)))) : Math.round(midGrind * (1 + sh.grind)),
-    grind: ref?.grind_label ?? 'Medium',
-    ratio: ref ? Number(((ref.ratio_min + ref.ratio_max) / 2).toFixed(1)) : 16,
-    bloom: sh.bloom,
-    roast_level: level,
-    notes,
-    basis: ref ? `${ref.display_name} published range, adjusted for a ${level.replace('-', ' ')} roast` : 'method defaults',
-  }
-  if (ref?.note) notes.push(ref.note)
-
-  const days = parsed.roast_date
-    ? Math.max(0, Math.round((Date.now() - Date.parse(parsed.roast_date)) / 86_400_000)) : null
-  if (days !== null && Number.isFinite(days)) {
-    if (days <= 7) { recipe.bloom = 3.0; notes.push('Very fresh — still degassing, so bloom longer and expect a big dome.') }
-    else if (days >= 45) { notes.push(`About ${days} days off roast — grind a touch finer to compensate.`) }
-  }
-
-  // ---- stage 3: research, cached per coffee -------------------------------
-  const slug = slugify(parsed.roaster, parsed.name)
-  const { data: existing } = await admin.from('coffees').select('*').eq('slug', slug).maybeSingle()
   let researchData = existing?.research ?? null
   let sources = existing?.sources ?? null
   let researched = !!existing?.researched_at
@@ -261,29 +332,19 @@ Deno.serve(async (req) => {
 
   if (!researched) {
     try {
-      const r = await research(key, researchModel, parsed, ref?.display_name ?? method)
-      if (r.data?.found) {
-        researchData = r.data; sources = r.sources; researched = true
-        if (r.data.water_temp_c)  recipe.temp = Math.round(r.data.water_temp_c)
-        if (r.data.grind_microns) recipe.grind_microns = Math.round(r.data.grind_microns)
-        if (r.data.grind_note)    recipe.grind = r.data.grind_note
-        if (r.data.ratio)         recipe.ratio = Number(r.data.ratio)
-        if (r.data.roaster_guide_found) recipe.basis = "the roaster's own brew guide"
-        else recipe.basis = 'published guidance found for this coffee'
-        if (r.data.advice) notes.push(r.data.advice)
-      } else { researched = true }
+      const r = await research(key, researchModel, parsed)
+      researchData = r.data; sources = r.sources; researched = true
+      // The web often knows the roaster when a logo-only bag does not.
+      if (parsed.roaster === 'Unknown roaster' && r.data?.roaster_identified) {
+        parsed.roaster = r.data.roaster_identified
+      }
     } catch (e) {
       researchError = String(e).slice(0, 200)   // enhancement only — never fatal
       await admin.from('scan_errors').insert({ stage: 'research', model: researchModel, detail: researchError })
     }
-  } else if (researchData) {
-    if (researchData.water_temp_c)  recipe.temp = Math.round(researchData.water_temp_c)
-    if (researchData.grind_microns) recipe.grind_microns = Math.round(researchData.grind_microns)
-    if (researchData.grind_note)    recipe.grind = researchData.grind_note
-    if (researchData.ratio)         recipe.ratio = Number(researchData.ratio)
-    recipe.basis = 'saved research for this coffee'
-    if (researchData.advice) notes.push(researchData.advice)
   }
+
+  const recipe = deriveRecipe(parsed, ref, roaster, researchData, method)
 
   const { data: coffee } = await admin.from('coffees').upsert({
     slug,
@@ -293,26 +354,31 @@ Deno.serve(async (req) => {
     process: parsed.process,
     varietal: parsed.varietal,
     roast_label: parsed.roast_label,
-    roast_level: level,
+    roast_level: parsed.roast_level ?? 'medium',
     confidence: Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5)),
     recipe,
+    raw: parsed,
     research: researchData,
     sources,
-    researched_at: researched ? new Date().toISOString() : null,
+    researched_at: researched ? (existing?.researched_at ?? new Date().toISOString()) : null,
     source: 'vision',
   }, { onConflict: 'slug' }).select().single()
 
-  await admin.from('scans').insert({
-    user_id: user.id, coffee_id: coffee?.id ?? null, cache_hit: !!existing?.researched_at, raw: parsed,
-  })
-  await admin.from('profiles').update({ scans_used: profile.scans_used + 1 }).eq('id', user.id)
+  if (!retailor) {
+    await admin.from('scans').insert({
+      user_id: user.id, coffee_id: coffee?.id ?? null, cache_hit: !!existing?.researched_at, raw: parsed,
+    })
+    await admin.from('profiles').update({ scans_used: profile.scans_used + 1 }).eq('id', user.id)
+  }
 
   return json({
     coffee, recipe, sources: sources ?? [],
     research_error: researchError,
-    scan_model: usedScanModel,
+    scan_model: retailor ? null : usedScanModel,
     matched_roaster: roaster?.name ?? null,
     cache_hit: !!existing?.researched_at,
-    scans_used: profile.scans_used + 1, scan_limit: profile.scan_limit, plan: profile.plan,
+    retailored: retailor,
+    scans_used: profile.scans_used + (retailor ? 0 : 1),
+    scan_limit: profile.scan_limit, plan: profile.plan,
   })
 })

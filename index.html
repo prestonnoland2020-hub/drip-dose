@@ -175,9 +175,16 @@
   .scan-result { margin: -4px 0 16px; border: 1px solid var(--copper); background: var(--copper-2);
     border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
   .scan-result[hidden] { display: none; }
+  .scan-result[data-busy="1"] { opacity: .55; }
   .scan-result .sr-name { font-family: var(--font-display); font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   .scan-result .sr-meta { font-size: 12.5px; color: var(--ink-2); }
-  .scan-result .sr-grind { font-size: 13px; }
+  .scan-result .sr-for { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--copper); }
+  .scan-result .sr-spec { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; align-items: baseline; }
+  .scan-result .sr-spec dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--ink-3); }
+  .scan-result .sr-spec dd { margin: 0; font-size: 14px; font-weight: 700; }
+  .scan-result .sr-spec dd em { font-style: normal; font-weight: 500; font-size: 12.5px; color: var(--ink-2); }
   .scan-result .sr-note { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
   .scan-result .sr-conf { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
   .scan-result .sr-src { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -684,6 +691,7 @@
   // ---------- State ----------
   const state = {
     dose: 20, ratio: 16, species: 'arabica', roast: 'medium', method: METHODS[0],
+    coffee: null,   // { coffee, recipe, sources } — the bag you scanned, if any
     tune: { temp: 0, time: 0, ratio: 0 }, // carried from taste feedback: °C, seconds of contact time, ratio points
     running: false, startedAt: 0, elapsed: 0, finished: false, lastStage: -1,
   };
@@ -692,6 +700,7 @@
   function saveSetup() {
     try { localStorage.setItem(SETUP_KEY, JSON.stringify({
       dose: state.dose, ratio: state.ratio, species: state.species, roast: state.roast, method: state.method.id,
+      coffee: state.coffee,
     })); } catch (e) {}
   }
   function restoreSetup() {
@@ -703,6 +712,7 @@
       if (v.ratio >= 10 && v.ratio <= 20) state.ratio = v.ratio;
       if (SPECIES[v.species]) state.species = v.species;
       if (ROAST[v.roast]) state.roast = v.roast;
+      if (v.coffee?.coffee?.id) state.coffee = v.coffee;
     } catch (e) {}
   }
 
@@ -717,7 +727,9 @@
     const water = state.dose * ratio;
     const bloom = Math.min(state.dose * BLOOM_MULT, water);
     const roast = ROAST[state.roast];
-    const temp = Math.max(80, Math.min(100, roast.temp + (state.method.id === 'aeropress' ? -2 : 0) + state.tune.temp));
+    // A scanned bag sets the water temperature. That is the whole point of scanning it.
+    const baseTemp = state.coffee?.recipe?.temp ?? (roast.temp + (state.method.id === 'aeropress' ? -2 : 0));
+    const temp = Math.max(80, Math.min(100, baseTemp + state.tune.temp));
     // Taste tuning stretches or shortens the first rest (bloom / steep) and shifts everything after it.
     let shift = 0, applied = false;
     const stages = state.method.stages.map(s => {
@@ -1131,6 +1143,8 @@
     state.method = METHODS.find(m => m.id === b.dataset.method);
     state.ratio = state.method.ratio; $('ratio').value = state.ratio;
     renderAll();
+    // Same bag, different brewer: the grind, temperature and ratio all move.
+    if (state.coffee) retailor(state.coffee.coffee.id);
   });
   $('again').addEventListener('click', () => { reset(); start(); });
   $('tweak').addEventListener('click', () => { reset(); $('dose').focus(); });
@@ -1149,6 +1163,7 @@
     saveSetup();
     const r = recipe();
     renderInputs();
+    renderScan();
     state.lastStage = -1;
     renderTimer(r, Math.min(elapsedNow(), r.total));
     if (!$('brewview').hidden) renderBrewView(r, Math.min(elapsedNow(), r.total), stageIndexAt(elapsedNow(), r.stages));
@@ -1275,6 +1290,7 @@
   });
 
   function applyScan(coffee, recipe, sources) {
+    state.coffee = { coffee, recipe, sources: sources || [] };
     if (recipe?.ratio) { state.ratio = Math.round(recipe.ratio * 2) / 2; $('ratio').value = state.ratio; }
     if (coffee?.roast_level) {
       const map = { 'light': 'light', 'medium-light': 'light', 'medium': 'medium',
@@ -1282,23 +1298,68 @@
       state.roast = map[coffee.roast_level] || 'medium';
     }
     state.tune = { temp: 0, time: 0, ratio: 0 }; saveTune();
+    renderAll();
+  }
+
+  // Ask for this same coffee worked out for the method that is selected now.
+  // No photo, no vision call, no scan spent — the bag is already on the row.
+  let retailorSeq = 0, retailorBusy = false;
+  async function retailor(coffeeId) {
+    if (!session) return;
+    const seq = ++retailorSeq;
+    retailorBusy = true; renderScan();
+    try {
+      const r = await fetch(`${SB_URL}/functions/v1/scan-bag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ coffee_id: coffeeId, method: state.method.id }),
+      });
+      const out = await r.json();
+      if (seq !== retailorSeq) return;              // a later tap won
+      if (!r.ok) { console.warn('retailor failed', out); return; }
+      applyScan(out.coffee, out.recipe, out.sources);
+    } catch (e) { console.warn('retailor failed', e); }
+    finally { if (seq === retailorSeq) { retailorBusy = false; renderScan(); } }
+  }
+
+  function clearCoffee() { state.coffee = null; renderAll(); }
+
+  function renderScan() {
     const el = $('scan-result');
+    if (!state.coffee) { el.hidden = true; return; }
+    const { coffee, recipe, sources } = state.coffee;
     const esc = t => String(t).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
     const roaster = coffee.roaster && coffee.roaster !== 'Unknown roaster' ? esc(coffee.roaster) + ' · ' : '';
+    const meta = [coffee.origin, coffee.process, coffee.roast_label || coffee.roast_level]
+      .filter(Boolean).map(esc).join(' · ');
+    const water = Math.round(state.dose * effectiveRatio());
+    // Two notes is the most anyone reads on a phone; the rest is noise.
+    const notes = (recipe.notes || []).filter(n => n && n.length < 180).slice(0, 2);
     const srcs = (sources || []).slice(0, 3);
+
     el.hidden = false;
+    if (retailorBusy) el.dataset.busy = '1'; else delete el.dataset.busy;
     el.innerHTML = `
       <div class="sr-name">${roaster}${esc(coffee.name)}</div>
-      <div class="sr-meta">${[coffee.origin, coffee.process, coffee.roast_label].filter(Boolean).map(esc).join(' · ') || 'Read from the label'}</div>
-      <div class="sr-grind"><b>Grind:</b> ${esc(recipe.grind)}${recipe.grind_microns ? ` · <b>${recipe.grind_microns} µm</b>` : ''}</div>
-      <div class="sr-grind"><b>Water:</b> ${recipe.temp} °C · <b>Ratio:</b> 1:${recipe.ratio}</div>
-      ${(recipe.notes || []).map(n => `<div class="sr-note">${esc(n)}</div>`).join('')}
+      ${meta ? `<div class="sr-meta">${meta}</div>` : ''}
+      ${recipe.about ? `<div class="sr-meta">${esc(recipe.about)}</div>` : ''}
+      ${'' /* the card must never claim to be set up for a method it was not worked out for */}
+      <div class="sr-for">${recipe.method === state.method.id
+        ? `Set up for ${esc(recipe.method_name || state.method.name)}`
+        : retailorBusy ? `Working out ${esc(state.method.name)}…`
+        : `Still set for ${esc(recipe.method_name || 'another brewer')} — reconnect to update`}</div>
+      <dl class="sr-spec">
+        <dt>Grind</dt><dd>${recipe.grind_microns ? `${recipe.grind_microns} µm ` : ''}<em>${esc(recipe.grind)}</em></dd>
+        <dt>Water</dt><dd>${recipe.temp} °C <em>${cToF(recipe.temp)} °F</em></dd>
+        <dt>Ratio</dt><dd>1:${recipe.ratio} <em>${water} g for ${fmtDose(state.dose)} g</em></dd>
+      </dl>
+      ${notes.map(n => `<div class="sr-note">${esc(n)}</div>`).join('')}
+      ${recipe.guide ? `<div class="sr-note">The guide found is for ${esc(recipe.guide.method)} (${esc(recipe.guide.text)}), so it is shown here rather than applied.</div>` : ''}
       <div class="sr-conf">from ${esc(recipe.basis || 'the label')}</div>
       ${srcs.length ? `<div class="sr-src">${srcs.map(x =>
           `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title).slice(0, 44)}</a>`).join('')}</div>` : ''}
-      <button class="sr-x" id="sr-clear">Clear</button>`;
-    $('sr-clear').addEventListener('click', () => { el.hidden = true; });
-    renderAll(); toast('Recipe set from the bag');
+      <button class="sr-x" id="sr-clear">Use my own settings</button>`;
+    $('sr-clear').addEventListener('click', clearCoffee);
   }
 
   async function loadMyCoffees() {
@@ -1310,8 +1371,11 @@
       const el = $('mycoffees');
       el.hidden = rows.length === 0;
       el.innerHTML = rows.map((c, i) => `<button data-i="${i}">${c.roaster} · ${c.name}<span>${c.roast_level || ''}</span></button>`).join('');
-      el.querySelectorAll('button').forEach(b => b.addEventListener('click',
-        () => applyScan(rows[+b.dataset.i], rows[+b.dataset.i].recipe, rows[+b.dataset.i].sources)));
+      el.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        const row = rows[+b.dataset.i];
+        applyScan(row, row.recipe, row.sources);   // instant, from what we have
+        retailor(row.id);                          // then correct it for this method
+      }));
     } catch (e) {}
   }
   initAuth();
