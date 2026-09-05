@@ -53,6 +53,14 @@ async function route() {
 }
 
 window.addEventListener('hashchange', route)
+// Belt and braces for in-app links: some standalone-mode browsers are flaky about the default
+// action of hash anchors inside freshly re-rendered DOM. Route them ourselves.
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#/"]'); if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey) return
+  e.preventDefault()
+  const h = a.getAttribute('href')
+  if (location.hash === h) route(); else location.hash = h
+})
 window.addEventListener('DOMContentLoaded', async () => {
   // Never let a slow or blocked SDK load leave a blank screen: after 6 s we route anyway.
   try { await Promise.race([initAuth(), new Promise((_, rej) => setTimeout(() => rej(new Error('auth timeout')), 6000))]) }

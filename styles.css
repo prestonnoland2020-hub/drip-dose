@@ -59,7 +59,7 @@ h3 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
 .top { display: flex; align-items: center; justify-content: space-between; padding: 6px 0 14px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; font-size: 18px; }
 .brand svg { width: 26px; height: 26px; fill: currentColor; stroke: none; color: var(--accent); }
-.back { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); padding: 8px 0; }
+.back { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: var(--ink); min-height: 44px; padding: 0 14px 0 8px; margin-left: -8px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line); }
 .back svg { width: 18px; height: 18px; }
 
 /* ---- surfaces ---- */
