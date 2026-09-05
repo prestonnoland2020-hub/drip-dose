@@ -1,12 +1,12 @@
 {
   "name": "POR",
   "short_name": "POR",
-  "description": "Pour-over calculator, brew timer and caffeine tracker",
+  "description": "Scan a bag of coffee, get the right recipe, brew it, rate it — and make the next one better.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#F3F1EC",
-  "theme_color": "#B8622B",
+  "background_color": "#E8E5DE",
+  "theme_color": "#23512F",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },

@@ -1,23 +1,34 @@
 # POR
 
-A single-file pour-over coffee app: recipe calculator, step-by-step brew timer, and a live caffeine extraction curve — all on one screen, built mobile-first.
+Scan a bag of coffee → POR understands it → recommends how to brew it → guides the brew → you rate the cup → the community and the recommendation engine learn from it.
 
-**Live:** https://prestonnoland2020-hub.github.io/drip-dose/
+Live: https://prestonnoland2020-hub.github.io/drip-dose/
 
-Add POR to your phone's home screen (iPhone: Share → Add to Home Screen. Android: ⋮ → Install app) and it runs full-screen, works offline, and updates itself whenever this repo changes.
+## Layout
 
-## What it does
+```
+index.html            app shell, five tabs
+styles.css            design system (linen / oak / sand / forest / dark grey)
+src/app.js            hash router
+src/methods.js        every brewing method: ratios, grind, guided steps   ← add a brewer here
+src/feedback.js       "how was it?" → the ONE change for next time
+src/calc.js           ratio, scaling, TDS → extraction
+src/timer.js          wall-clock brew timer engine
+src/api/*.js          Supabase reads/writes (coffees, brews, social, library, profile)
+src/views/*.js        one file per screen
+supabase/functions/   scan-bag (label → coffee), recommend (coffee + you + community → recipe), barista
+```
 
-- **Recipe** — enter the coffee dose in grams; water targets for bloom, each pour and drawdown recalculate instantly. Quick-pick doses, a ratio slider, Arabica/Robusta, roast level, and six brew methods (V60, Chemex, Kalita Wave, AeroPress, French Press, Clever).
-- **Water temperature** — recommended kettle temp in °C and °F from the roast level (light 96 °C, medium 93 °C, dark 88 °C), which also feeds the extraction model.
-- **Brew timer** — highlights the active stage, turns copper with a chime and vibration when it's time to pour, and shows the live cumulative scale target so you can pace each pour. A sticky bottom bar keeps the clock and cue in reach while you scroll.
-- **Caffeine extraction** — `C(t) = C_dry · E_max · (1 − e^(−kt))`, drawn live with pour bands and a hover tooltip. Arabica ≈ 12 mg/g, Robusta ≈ 22 mg/g; k and E_max vary by method and roast.
-- **Result card** — caffeine in the cup, extraction %, espresso and daily-guideline equivalents, a predicted flavor profile, and a taste-feedback loop (sour, bitter, weak, strong) that tunes temperature, time and ratio for your next brew.
+No build step. Plain ES modules served by GitHub Pages. `./build.sh` only stamps the
+service-worker cache id and regenerates the server copies of `methods.js` / `feedback.js`.
 
-Keyboard: `Space` starts/pauses, `Esc` closes the result card.
+Every brew is a structured row (dose, water, ratio, temp, grind, time, rating,
+five taste dimensions, feedback chips, what the engine recommended, what you changed)
+— never just a post. That is the data the recommendations get better on.
 
-## Files
+## Local
 
-`index.html` is the whole app — no build step, no dependencies. `sw.js` is the service worker (offline + auto-update), `manifest.webmanifest` and the icons make it installable.
-
-Built with plain HTML, CSS and JavaScript. Fonts come from Google Fonts and fall back to system fonts offline.
+```
+python3 -m http.server 8765
+open http://localhost:8765/?mock=1      # fixtures, no backend
+```
