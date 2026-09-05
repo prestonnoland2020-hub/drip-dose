@@ -178,6 +178,9 @@
   .scan-result[data-busy="1"] { opacity: .55; }
   .scan-result .sr-name { font-family: var(--font-display); font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
   .scan-result .sr-meta { font-size: 12.5px; color: var(--ink-2); }
+  .scan-result .sr-taste { font-size: 14px; font-style: italic; color: var(--ink); }
+  .scan-result .sr-warn { font-size: 12.5px; line-height: 1.5; color: var(--ink); background: var(--bg-2);
+    border-left: 3px solid var(--copper); border-radius: 6px; padding: 8px 10px; }
   .scan-result .sr-for { font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em;
     text-transform: uppercase; color: var(--copper); }
   .scan-result .sr-spec { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; align-items: baseline; }
@@ -1092,7 +1095,11 @@
   $('dose-down').addEventListener('click', () => setDose(state.dose - 1));
   $('ratio').addEventListener('input', e => { state.ratio = parseFloat(e.target.value); renderAll(); });
   $('species').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.species = b.dataset.species; renderAll(); });
-  $('roast').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.roast = b.dataset.roast; renderAll(); });
+  $('roast').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.roast = b.dataset.roast; renderAll();
+    if (state.coffee) retailor(state.coffee.coffee.id);   // your roast, this bag: work it out again
+  });
   $('tuned-reset').addEventListener('click', () => { state.tune = { temp: 0, time: 0, ratio: 0 }; saveTune(); renderAll(); });
 
   // Taste feedback → recommendation → apply to the next brew
@@ -1265,7 +1272,7 @@
       const r = await fetch(`${SB_URL}/functions/v1/scan-bag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ image, media_type: 'image/jpeg', method: state.method.id }),
+        body: JSON.stringify({ image, media_type: 'image/jpeg', method: state.method.id, roast: state.roast }),
       });
       const out = await r.json();
       if (!r.ok) {
@@ -1289,13 +1296,16 @@
     finally { btn.disabled = false; paintAuth(); }
   });
 
-  function applyScan(coffee, recipe, sources) {
+  function applyScan(coffee, recipe, sources, { fresh = true } = {}) {
     state.coffee = { coffee, recipe, sources: sources || [] };
     if (recipe?.ratio) { state.ratio = Math.round(recipe.ratio * 2) / 2; $('ratio').value = state.ratio; }
-    if (coffee?.roast_level) {
+    // A fresh scan sets the roast from what the recipe settled on (label + roaster bias).
+    // If the bag did not say, the brewer's own setting stands and the card says why.
+    // A re-tailor never touches it: the brewer may have just changed it on purpose.
+    if (fresh && recipe?.roast_level && !recipe.roast_assumed) {
       const map = { 'light': 'light', 'medium-light': 'light', 'medium': 'medium',
                     'medium-dark': 'dark', 'dark': 'dark', 'very-dark': 'dark' };
-      state.roast = map[coffee.roast_level] || 'medium';
+      state.roast = map[recipe.roast_level] || state.roast;
     }
     state.tune = { temp: 0, time: 0, ratio: 0 }; saveTune();
     renderAll();
@@ -1312,12 +1322,12 @@
       const r = await fetch(`${SB_URL}/functions/v1/scan-bag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ coffee_id: coffeeId, method: state.method.id }),
+        body: JSON.stringify({ coffee_id: coffeeId, method: state.method.id, roast: state.roast }),
       });
       const out = await r.json();
       if (seq !== retailorSeq) return;              // a later tap won
       if (!r.ok) { console.warn('retailor failed', out); return; }
-      applyScan(out.coffee, out.recipe, out.sources);
+      applyScan(out.coffee, out.recipe, out.sources, { fresh: false });
     } catch (e) { console.warn('retailor failed', e); }
     finally { if (seq === retailorSeq) { retailorBusy = false; renderScan(); } }
   }
@@ -1330,11 +1340,14 @@
     const { coffee, recipe, sources } = state.coffee;
     const esc = t => String(t).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
     const roaster = coffee.roaster && coffee.roaster !== 'Unknown roaster' ? esc(coffee.roaster) + ' · ' : '';
-    const meta = [coffee.origin, coffee.process, coffee.roast_label || coffee.roast_level]
+    const roastWord = recipe.roast_assumed ? null : (coffee.roast_label || (coffee.roast_level || '').replace('-', ' '));
+    const meta = [coffee.blend ? 'Blend' : coffee.origin, coffee.process, roastWord && roastWord + ' roast',
+      coffee.altitude_m ? `${coffee.altitude_m} m` : null, coffee.decaf ? 'Decaf' : null]
       .filter(Boolean).map(esc).join(' · ');
+    const tasting = coffee.tasting_notes ? esc(String(coffee.tasting_notes).replace(/\.$/, '')) : '';
     const water = Math.round(state.dose * effectiveRatio());
     // Two notes is the most anyone reads on a phone; the rest is noise.
-    const notes = (recipe.notes || []).filter(n => n && n.length < 180).slice(0, 2);
+    const notes = (recipe.notes || []).filter(n => n && n.length < 180 && !/^Roast not printed|^You set /.test(n)).slice(0, 3);
     const srcs = (sources || []).slice(0, 3);
 
     el.hidden = false;
@@ -1342,7 +1355,9 @@
     el.innerHTML = `
       <div class="sr-name">${roaster}${esc(coffee.name)}</div>
       ${meta ? `<div class="sr-meta">${meta}</div>` : ''}
-      ${recipe.about ? `<div class="sr-meta">${esc(recipe.about)}</div>` : ''}
+      ${tasting ? `<div class="sr-taste">${tasting}</div>` : recipe.about ? `<div class="sr-meta">${esc(recipe.about)}</div>` : ''}
+      ${recipe.roast_assumed ? `<div class="sr-warn">Roast isn't printed on this bag — using <b>${esc(ROAST[state.roast].name)}</b> from your own setting. Change it under Method if you know better.</div>`
+        : recipe.roast_overridden ? `<div class="sr-warn">You set <b>${esc(ROAST[state.roast].name)}</b>; the bag says ${esc((coffee.roast_label || coffee.roast_level || '').replace('-', ' '))}. Going with yours.</div>` : ''}
       ${'' /* the card must never claim to be set up for a method it was not worked out for */}
       <div class="sr-for">${recipe.method === state.method.id
         ? `Set up for ${esc(recipe.method_name || state.method.name)}`

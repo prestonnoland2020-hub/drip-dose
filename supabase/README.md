@@ -38,3 +38,17 @@ because someone brews to it.
 ## Deploying
 The function is deployed via the Supabase MCP/dashboard. This file is the source
 of truth for the code; keep them in step.
+
+## Recipe logic tests
+
+The recipe derivation (`functions/scan-bag/recipe.ts`) is pure and has unit tests:
+
+```sh
+cd supabase/functions/scan-bag
+npx esbuild recipe.ts --format=esm --outfile=test/recipe.mjs
+node --test test/recipe.test.mjs
+```
+
+Vision model choice is measured, not guessed: on a real bag with a Light↔Dark roast
+scale, `gpt-4.1` read it correctly 12/12 times; `gpt-4o` 9/12. The function defaults
+to `gpt-4.1` and falls back through `gpt-4o` and `gpt-4.1-mini`.
