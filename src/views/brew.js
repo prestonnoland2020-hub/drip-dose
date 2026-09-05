@@ -25,8 +25,9 @@ export async function render() {
     <a class="btn primary big" href="#/recipe" id="go">${icon(I.spark)} ${c ? 'Get my recipe' : 'Build a recipe'}</a>
     <div class="grid2" style="margin-top:14px"><a class="btn" href="#/calc">Calculators</a><a class="btn" href="#/barista">Ask the barista</a></div>`)
   $('methods').querySelectorAll('[data-method]').forEach(b => b.onclick = () => {
-    set({ method: b.dataset.method }); $('methods').querySelectorAll('[data-method]').forEach(x => x.setAttribute('aria-pressed', x === b))
+    set({ method: b.dataset.method, rec: null }); $('methods').innerHTML = methodGrid(state.method); bindMethods()
   })
+  function bindMethods() { $('methods').querySelectorAll('[data-method]').forEach(b => b.onclick = () => { set({ method: b.dataset.method, rec: null }); $('methods').innerHTML = methodGrid(state.method); bindMethods() }) }
   bindStepper($('dose'), () => state.dose, v => set({ dose: v }))
   $('no-coffee')?.addEventListener('click', () => { set({ coffee: null, rec: null }); render() })
   $('gear').onclick = () => {

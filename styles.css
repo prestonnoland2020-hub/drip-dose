@@ -85,7 +85,7 @@ h3 { font-size: 17px; font-weight: 600; margin: 0 0 4px; }
 .btn svg { width: 18px; height: 18px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--bg-2);
-  font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+  font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .iconbtn { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line-2); background: var(--bg-2); }
 .iconbtn svg { width: 20px; height: 20px; }
@@ -99,7 +99,7 @@ textarea.input { min-height: 84px; resize: vertical; }
 .seg button { min-height: 40px; font-size: 14px; font-weight: 500; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .stepper { display: flex; align-items: center; gap: 12px; }
-.stepper .val { font-family: var(--mono); font-size: 34px; font-weight: 700; min-width: 3ch; text-align: center; }
+.stepper .val { font-family: var(--mono); font-size: 34px; font-weight: 700; min-width: 3ch; text-align: center; flex: 1; }
 .stepper .val small { font-size: 14px; color: var(--ink-3); margin-left: 2px; }
 .stepper button { width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--line-2); font-size: 22px; background: var(--bg-2); }
 
@@ -156,7 +156,8 @@ textarea.input { min-height: 84px; resize: vertical; }
 .conf.high { color: var(--accent); } .conf.low { color: var(--danger); }
 
 /* ---- method cards ---- */
-.methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.methods { gap: 8px; }
+.methods .chip svg { width: 18px; height: 18px; }
 .mcard { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--bg-2); text-align: left; min-height: 96px; }
 .mcard svg { width: 28px; height: 28px; }
 .mcard b { font-size: 16px; }

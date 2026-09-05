@@ -47,14 +47,16 @@ export function bindPosts(root) {
   }))
 }
 
-export function methodGrid(selected, { compact = false } = {}) {
-  return `<div class="methods">${METHODS.map(m => `<button class="mcard" data-method="${m.id}" aria-pressed="${m.id === selected}">
-    ${icon(ICON[m.icon])}<b>${esc(m.name)}</b><small>${esc(compact ? m.kind : m.kind + ' · ' + ratioStr(m.ratio))}</small></button>`).join('')}</div>`
+// Ten brewers in three short rows, not two screens of cards. The chosen one explains itself underneath.
+export function methodGrid(selected) {
+  const m = byId(selected)
+  return `<div class="chips methods" role="radiogroup">${METHODS.map(x => `<button class="chip" role="radio" data-method="${x.id}" aria-pressed="${x.id === selected}" aria-checked="${x.id === selected}">${icon(ICON[x.icon])} ${esc(x.name)}</button>`).join('')}</div>
+    <div class="small muted" id="method-note" style="margin-top:8px">${esc(m.kind)} · ${ratioStr(m.ratio)} · ${esc(m.note)}</div>`
 }
 
 export function doseStepper(dose, id = 'dose') {
-  return `<div class="stepper"><button data-step="-1" aria-label="Less">−</button><div class="val" id="${id}-val">${esc(String(dose).replace(/\.0$/, ''))}<small>g</small></div><button data-step="1" aria-label="More">+</button>
-    <div class="chips" style="margin-left:auto">${[['12', 12], ['15', 15], ['20', 20], ['30', 30]].map(([l, v]) => `<button class="chip" data-preset="${v}" aria-pressed="${dose === v}">${l} g</button>`).join('')}</div></div>`
+  return `<div class="stepper"><button data-step="-1" aria-label="Less">−</button><div class="val" id="${id}-val">${esc(String(dose).replace(/\.0$/, ''))}<small>g</small></div><button data-step="1" aria-label="More">+</button></div>
+    <div class="chips" style="margin-top:10px">${[['1 small cup', 12], ['1 mug', 15], ['2 cups', 20], ['3 cups', 30]].map(([l, v]) => `<button class="chip" data-preset="${v}" aria-pressed="${dose === v}">${l}<span class="muted" style="margin-left:4px">${v} g</span></button>`).join('')}</div>`
 }
 export function bindStepper(root, get, setv, id = 'dose') {
   const paint = () => { root.querySelector(`#${id}-val`).innerHTML = `${String(get()).replace(/\.0$/, '')}<small>g</small>`; root.querySelectorAll('[data-preset]').forEach(b => b.setAttribute('aria-pressed', Number(b.dataset.preset) === get())) }
