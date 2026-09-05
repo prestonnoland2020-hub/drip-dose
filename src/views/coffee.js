@@ -6,7 +6,7 @@ import * as coffees from '../api/coffees.js'
 import * as brews from '../api/brews.js'
 import * as social from '../api/social.js'
 import * as library from '../api/library.js'
-import { postCard, bindPosts, methodName } from './_shared.js'
+import { postCard, bindPosts, methodName } from './shared.js'
 
 export async function render({ params }) {
   const id = params[0]

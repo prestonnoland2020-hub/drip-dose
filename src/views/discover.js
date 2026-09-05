@@ -3,7 +3,7 @@ import { mount, top, esc, icon, I, $, bagImg, roastWord, ratioStr, timeAgo } fro
 import { supa } from '../supa.js'
 import { imageUrl } from '../api/coffees.js'
 import * as social from '../api/social.js'
-import { postCard, bindPosts, methodName } from './_shared.js'
+import { postCard, bindPosts, methodName } from './shared.js'
 import { METHODS } from '../methods.js'
 
 export async function render({ query }) {

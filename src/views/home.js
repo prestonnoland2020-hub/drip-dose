@@ -7,7 +7,7 @@ import * as brews from '../api/brews.js'
 import * as social from '../api/social.js'
 import * as library from '../api/library.js'
 import * as profile from '../api/profile.js'
-import { postCard, bindPosts, methodName } from './_shared.js'
+import { postCard, bindPosts, methodName } from './shared.js'
 
 const greeting = () => { const h = new Date().getHours(); return h < 5 ? 'Late night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening' }
 

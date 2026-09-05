@@ -2,7 +2,7 @@
 import { mount, top, esc, icon, I, $, bagImg, coffeeTitle, coffeeMeta } from '../ui.js'
 import { state, set } from '../store.js'
 import { byId } from '../methods.js'
-import { methodGrid, doseStepper, bindStepper } from './_shared.js'
+import { methodGrid, doseStepper, bindStepper } from './shared.js'
 
 export async function render() {
   const c = state.coffee

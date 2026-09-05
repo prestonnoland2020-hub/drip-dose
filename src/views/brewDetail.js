@@ -4,7 +4,7 @@ import { state, set } from '../store.js'
 import { uid } from '../supa.js'
 import * as brews from '../api/brews.js'
 import * as social from '../api/social.js'
-import { postCard, bindPosts, stepsList, methodName } from './_shared.js'
+import { postCard, bindPosts, stepsList, methodName } from './shared.js'
 import { FEEDBACK } from '../feedback.js'
 
 export async function render({ params }) {

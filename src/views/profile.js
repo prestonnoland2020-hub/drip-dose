@@ -4,7 +4,7 @@ import { uid, signOut } from '../supa.js'
 import * as profile from '../api/profile.js'
 import * as brews from '../api/brews.js'
 import * as social from '../api/social.js'
-import { postCard, bindPosts, methodName } from './_shared.js'
+import { postCard, bindPosts, methodName } from './shared.js'
 
 export async function render({ params, name }) {
   const id = name === 'user' ? params[0] : uid()

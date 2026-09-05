@@ -6,7 +6,7 @@ import * as brews from '../api/brews.js'
 import * as library from '../api/library.js'
 import * as profile from '../api/profile.js'
 import { FEEDBACK, nextTime } from '../feedback.js'
-import { methodName } from './_shared.js'
+import { methodName } from './shared.js'
 
 const DIMS = [['acidity', 'Acidity'], ['sweetness', 'Sweetness'], ['body', 'Body'], ['clarity', 'Clarity'], ['balance', 'Balance']]
 

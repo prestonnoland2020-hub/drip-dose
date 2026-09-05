@@ -5,7 +5,7 @@ import { uid } from '../supa.js'
 import { byId } from '../methods.js'
 import * as coffees from '../api/coffees.js'
 import * as profile from '../api/profile.js'
-import { recipeSpec, stepsList, confidenceTag } from './_shared.js'
+import { recipeSpec, stepsList, confidenceTag } from './shared.js'
 
 let me = null
 export async function render() {

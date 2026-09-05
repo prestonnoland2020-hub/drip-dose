@@ -5,7 +5,7 @@ import { uid } from '../supa.js'
 import * as library from '../api/library.js'
 import * as brews from '../api/brews.js'
 import * as social from '../api/social.js'
-import { postCard, bindPosts, methodName } from './_shared.js'
+import { postCard, bindPosts, methodName } from './shared.js'
 
 export async function render({ query }) {
   const tab = query.tab || 'coffees'
