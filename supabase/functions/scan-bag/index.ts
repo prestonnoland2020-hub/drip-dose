@@ -70,7 +70,7 @@ Return one JSON object and nothing else:
   "notes": string|null
 }`
 
-async function readLabel(key: string, image: string, mediaType: string, model: string) {
+async function readLabel(key: string, image: string, mediaType: string, model: string, roasterHint = '') {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
@@ -78,7 +78,7 @@ async function readLabel(key: string, image: string, mediaType: string, model: s
       model,
       response_format: { type: 'json_object' },
       messages: [{ role: 'user', content: [
-        { type: 'text', text: READ_PROMPT },
+        { type: 'text', text: READ_PROMPT + roasterHint },
         { type: 'image_url', image_url: { url: `data:${mediaType};base64,${image}`, detail: 'high' } },
       ]}],
     }),
@@ -213,11 +213,15 @@ Deno.serve(async (req) => {
   } else {
     // Try the configured model, then fall back through known-good ones. Model
     // availability varies by account, and a scan should not die over a name.
+    // The reader knows which roasters exist, so a logo it recognises becomes a name, not a null.
+    const { data: known } = await admin.from('roasters').select('name, logo_hint').order('name')
+    const roasterHint = known?.length ? `\n\nRoasters POR knows (if the logo or wordmark matches one, use its exact name; otherwise null):\n` +
+      known.map((r: any) => r.logo_hint ? `${r.name} — ${r.logo_hint}` : r.name).join('; ') : ''
     const candidates = [...new Set([scanModel, 'gpt-4.1', 'gpt-4o', 'gpt-4.1-mini'])]
     const attempts: { model: string; error: string }[] = []
     for (const m0 of candidates) {
       try {
-        const text = await readLabel(key, image!, mediaType, m0)
+        const text = await readLabel(key, image!, mediaType, m0, roasterHint)
         const m = String(text).replace(/^```(?:json)?|```$/gm, '').trim().match(/\{[\s\S]*\}/)
         if (!m) throw new Error('no json in reply: ' + String(text).slice(0, 120))
         parsed = JSON.parse(m[0]); usedScanModel = m0

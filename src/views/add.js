@@ -41,9 +41,17 @@ export async function render({ query }) {
 async function doSearch() {
   const q = $('q').value.trim(); const el = $('results')
   if (q.length < 2) { el.innerHTML = ''; return }
-  const rows = await coffees.search(q)
-  el.innerHTML = rows.length ? rows.map(c => coffeeRow(c)).join('') : `<div class="empty">Nothing yet for “${esc(q)}”. Scan the bag or enter it by hand.</div>`
+  const [rows, rs] = await Promise.all([coffees.search(q), coffees.roasters(q, 3)])
+  const roasterChips = rs.length && !rows.some(c => rs.some(r => r.name === c.roaster)) ? `<div class="chips" style="margin-bottom:4px">${rs.map(r => `<button class="chip" data-roaster="${esc(r.name)}">${esc(r.name)} <span class="muted">${esc(r.city || r.country || '')}</span></button>`).join('')}</div>` : ''
+  el.innerHTML = roasterChips + rows.map(c => coffeeRow(c)).join('')
+    + (q.length > 3 ? `<button class="card row" id="lookup" style="text-align:left"><span class="iconbtn">${icon(I.spark)}</span><div><b>${rows.length ? 'Not here? ' : ''}Look up “${esc(q)}”</b><div class="small muted">POR finds it on the roaster's site and saves it for everyone</div></div></button>` : (rows.length ? '' : `<div class="empty">Keep typing — roaster and coffee name together works best.</div>`))
   el.querySelectorAll('[data-pick]').forEach(b => b.onclick = async () => choose(await coffees.get(b.dataset.pick)))
+  el.querySelectorAll('[data-roaster]').forEach(b => b.onclick = () => { $('q').value = b.dataset.roaster + ' '; $('q').focus(); doSearch() })
+  $('lookup')?.addEventListener('click', async () => {
+    const p = sheet(`<h3>Looking up “${esc(q)}”…</h3><p class="muted small">Reading the roaster's page. Ten seconds or so.</p><div class="skeleton" style="min-height:100px"></div>`)
+    try { const out = await coffees.lookup(q); closeSheet(); confirmSheet({ coffee: out.coffee, cache_hit: out.existed, looked_up: true, existed: out.existed }) }
+    catch (err) { p.innerHTML = `<h3>Couldn't find it</h3><p class="muted">${esc(err.detail?.message || 'Try the roaster and the coffee name together.')}</p><button class="btn" id="sh-close">Close</button>`; $('sh-close').onclick = closeSheet }
+  })
 }
 function coffeeRow(c) {
   return `<button class="card row" data-pick="${c.id}" style="text-align:left">${bagImg(c)}<div style="min-width:0"><div class="roaster">${esc(c.roaster !== 'Unknown roaster' ? c.roaster : '')}</div><b>${esc(c.name)}</b><div class="small muted">${[c.blend ? 'Blend' : c.origin, c.process, c.roast_level ? roastWord(c.roast_level) : null].filter(Boolean).map(esc).join(' · ')}</div></div></button>`
@@ -79,7 +87,7 @@ async function scanFile(file) {
 // What was detected, field by field. AI-read fields are marked; anything can be corrected.
 function confirmSheet(out) {
   const c = out.coffee, src = c.field_sources || {}
-  const tag = k => src[k] === 'user' ? '' : `<span class="tag ai">AI read</span>`
+  const tag = k => src[k] === 'user' || src[k] === 'catalog' ? '' : src[k] === 'web' ? `<span class="tag ai">from the web</span>` : `<span class="tag ai">AI read</span>`
   const row = (label, k, v) => v ? `<div class="row between"><span class="muted small">${label}</span><span style="text-align:right">${esc(v)} ${tag(k)}</span></div>` : ''
   const p = sheet(`<div class="eyebrow">Detected coffee</div>
     <h2 style="margin-top:4px">${esc(c.name)}</h2>
@@ -90,7 +98,7 @@ function confirmSheet(out) {
       ${!c.roast_level ? `<div class="small" style="color:var(--danger)">Roast wasn't printed on the bag. Set it below if you know it — the recipe depends on it.</div>` : ''}
     </div>
     <div class="grid2"><button class="btn" id="fix">${icon(I.edit)} Fix something</button><button class="btn primary" id="ok">${icon(I.check)} Looks right</button></div>
-    <div class="small muted" style="margin-top:10px">${out.cache_hit ? 'Known coffee — recipe from saved research.' : 'New to POR — it has just been looked up.'} ${out.scans_used != null ? `${out.scans_used}/${out.scan_limit} scans used.` : ''}</div>`)
+    <div class="small muted" style="margin-top:10px">${out.looked_up ? (out.existed ? 'Already in POR — filled in what was missing.' : 'Found online and saved for everyone.') : out.cache_hit ? 'Known coffee — recipe from saved research.' : 'New to POR — it has just been looked up.'} ${out.scans_used != null ? `${out.scans_used}/${out.scan_limit} scans used.` : ''}</div>`)
   $('ok').onclick = () => { closeSheet(); choose(c) }
   $('fix').onclick = () => editSheet(c, async fields => { const fixed = await coffees.correct(c.id, fields); await choose(fixed) })
 }

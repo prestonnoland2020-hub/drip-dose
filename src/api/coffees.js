@@ -11,9 +11,12 @@ export async function get(id) {
 }
 export async function search(q, limit = 12) {
   const c = await supa()
-  const like = `%${q.replace(/[%_]/g, '')}%`
-  const { data } = await c.from('coffees').select('id, roaster, name, origin, process, roast_level, blend, decaf, image_path')
-    .or(`name.ilike.${like},roaster.ilike.${like},origin.ilike.${like}`).order('updated_at', { ascending: false }).limit(limit)
+  const words = q.replace(/[%_,]/g, ' ').split(/\s+/).filter(w => w.length > 1)
+  if (!words.length) return []
+  // every word must appear somewhere in roaster + name + origin + notes, so "starbucks pike" finds Pike Place
+  let qb = c.from('coffees').select('id, roaster, name, origin, process, roast_level, blend, decaf, image_path, source')
+  for (const w of words) qb = qb.or(`name.ilike.%${w}%,roaster.ilike.%${w}%,origin.ilike.%${w}%,tasting_notes.ilike.%${w}%`)
+  const { data } = await qb.order('updated_at', { ascending: false }).limit(limit)
   return (data || []).map(withImg)
 }
 export async function recent(limit = 8) {
@@ -57,3 +60,9 @@ export async function retailor(coffeeId, method, roast) {
   return { ...out, coffee: withImg(out.coffee) }
 }
 export async function recommend(body) { return fn('recommend', body) }
+export async function lookup(query) { const out = await fn('lookup-coffee', { query }); return { ...out, coffee: withImg(out.coffee) } }
+export async function roasters(q, limit = 6) {
+  const c = await supa(); const like = `%${q.replace(/[%_]/g, '')}%`
+  const { data } = await c.from('roasters').select('name, city, country, tier, house_style').ilike('name', like).limit(limit)
+  return data || []
+}

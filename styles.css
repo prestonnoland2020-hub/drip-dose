@@ -174,7 +174,7 @@ textarea.input { min-height: 84px; resize: vertical; }
 .ring .prog { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .12s linear; }
 .ring .pourarc { stroke: var(--oak); opacity: .6; }
 .ring .mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; }
-.ring .clock { font-family: var(--mono); font-size: 56px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+.ring .clock { font-family: var(--mono); font-size: 50px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
 .ring .stage { font-size: 15px; color: var(--ink-2); margin-top: 6px; }
 .ring .target { font-family: var(--mono); font-size: 28px; font-weight: 700; }
 .ring .target small { font-size: 13px; color: var(--ink-3); font-weight: 500; }
@@ -232,3 +232,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .fade { animation: fade .25s ease-out; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* per-step countdown in the ring */
+.timer .left{font-family:var(--mono);font-size:22px;font-weight:600;letter-spacing:-.01em;color:var(--ink);margin-top:2px;min-height:26px}
+.timer.pour .left{color:var(--accent)}
+.timer .left.urgent{animation:pulse .5s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.45}}
