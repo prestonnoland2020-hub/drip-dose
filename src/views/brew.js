@@ -14,7 +14,7 @@ export async function render() {
   mount(`${top('Brew')}
     <div class="eyebrow"><b>01</b>Coffee</div>
     <div class="card" style="margin:8px 0 22px">${c
-      ? `<div class="coffee-hero">${bagImg(c)}<div style="min-width:0">${coffeeTitle(c)}${coffeeMeta(c)}</div></div><div class="row" style="margin-top:12px;gap:8px"><a class="btn sm" href="#/add">Change coffee</a><button class="btn sm ghost" id="no-coffee">Brew without a coffee</button></div>`
+      ? `<div class="coffee-hero">${bagImg(c)}<div style="min-width:0">${coffeeTitle(c)}${coffeeMeta(c)}</div></div><div class="row between" style="margin-top:10px"><a href="#/add" class="small" style="color:var(--accent)">Change coffee</a><button class="small muted" id="no-coffee" style="background:none;padding:0">Brew without one</button></div>`
       : `<p class="muted" style="margin:0 0 12px">Add the bag and the recipe is worked out for it. Or brew without one.</p><a class="btn primary" href="#/add">${icon(I.camera)} Add a coffee</a>`}</div>
     <div class="eyebrow"><b>02</b>Brewer</div>
     <div style="margin:8px 0 22px" id="methods">${methodGrid(state.method)}</div>
@@ -23,7 +23,7 @@ export async function render() {
     <div class="eyebrow"><b>04</b>Grinder</div>
     <button class="card row between" id="gear" style="margin:8px 0 26px;width:100%;text-align:left;padding:12px 14px"><div><b>${g ? esc(g.name) : uid() ? 'Add your grinder' : 'Sign in to add your grinder'}</b><div class="small muted">${g ? 'You get a setting, not a vague grind size' : 'POR turns the recipe into a number on your dial'}</div></div>${icon(I.chev)}</button>
     <a class="btn primary big" href="#/recipe" id="go">${icon(I.spark)} ${c ? 'Get my recipe' : 'Build a recipe'}</a>
-    <div class="grid2" style="margin-top:14px"><a class="btn" href="#/calc">Calculators</a><a class="btn" href="#/barista">Ask the barista</a></div>`)
+    <div class="row" style="justify-content:center;gap:22px;margin-top:16px"><a href="#/calc" class="small muted">Calculators</a><a href="#/barista" class="small muted">Ask the barista</a></div>`)
   $('methods').querySelectorAll('[data-method]').forEach(b => b.onclick = () => {
     set({ method: b.dataset.method, rec: null }); $('methods').innerHTML = methodGrid(state.method); bindMethods()
   })

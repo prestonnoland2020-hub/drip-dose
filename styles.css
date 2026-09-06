@@ -238,3 +238,5 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .timer.pour .left{color:var(--accent)}
 .timer .left.urgent{animation:pulse .5s ease-in-out infinite alternate}
 @keyframes pulse{from{opacity:1}to{opacity:.45}}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-16px;margin-right:-16px;padding:0 16px}
+.chips.scroll::-webkit-scrollbar{display:none}
