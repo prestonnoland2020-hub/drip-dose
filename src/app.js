@@ -3,6 +3,10 @@ import { initAuth, onAuth, session } from './supa.js'
 import { $, mount, toast } from './ui.js'
 import { state } from './store.js'
 
+// How many in-app navigations we've made, so Back knows whether history has anywhere to go.
+let depth = 0
+window.addEventListener('hashchange', () => { depth++ })
+
 const routes = {
   '': () => import('./views/home.js'),
   'home': () => import('./views/home.js'),
@@ -13,6 +17,7 @@ const routes = {
   'timer': () => import('./views/timer.js'),
   'rate': () => import('./views/rate.js'),
   'coffee': () => import('./views/coffee.js'),
+  'roaster': () => import('./views/roaster.js'),
   'b': () => import('./views/brewDetail.js'),
   'library': () => import('./views/library.js'),
   'profile': () => import('./views/profile.js'),
@@ -59,6 +64,8 @@ document.addEventListener('click', e => {
   const a = e.target.closest('a[href^="#/"]'); if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey) return
   e.preventDefault()
   const h = a.getAttribute('href')
+  // A Back pill returns to wherever you came from inside the app; the href is only the fallback.
+  if (a.dataset.back && depth > 0) { depth -= 2; history.back(); return }
   if (location.hash === h) route(); else location.hash = h
 })
 window.addEventListener('DOMContentLoaded', async () => {

@@ -2,11 +2,13 @@
 //   Coffees  — what people are brewing and rating, one ranked list
 //   Brews    — recipes people have shared
 //   Roasters — who's roasting, tap one to see their coffees
-import { mount, top, esc, $, bagImg, roastWord } from '../ui.js'
+import { mount, top, esc, icon, I, $, bagImg, roastWord } from '../ui.js'
 import { supa } from '../supa.js'
 import { imageUrl } from '../api/coffees.js'
 import * as social from '../api/social.js'
 import { postCard, bindPosts } from './shared.js'
+
+const row = x => `<a class="card row" href="#/coffee/${x.id}" style="min-width:0">${bagImg(x)}<div style="min-width:0;flex:1"><div class="roaster">${esc(x.roaster !== 'Unknown roaster' ? x.roaster : '')}</div><b>${esc(x.name)}</b><div class="small muted">${[x.blend ? 'Blend' : x.origin, x.roast_level ? roastWord(x.roast_level) : null].filter(Boolean).map(esc).join(' · ')}</div></div>${x.s?.brews ? `<div style="text-align:right" class="small"><b class="num">${x.s.avg_rating ?? '—'}</b><div class="muted">${x.week ? `${x.week} this week` : `${x.s.brews} brew${x.s.brews === 1 ? '' : 's'}`}</div></div>` : ''}</a>`
 
 const TABS = [['coffees', 'Coffees'], ['brews', 'Brews'], ['roasters', 'Roasters']]
 let tab = 'coffees'
@@ -35,31 +37,33 @@ async function load() {
     bindPosts(el); return
   }
 
+  if (tab === 'roasters') {
+    // The directory itself, not just roasters we happen to have coffees for.
+    const list = q ? await coffees.roasters(q, 40) : (await c.from('roasters').select('id, name, city, country, logo_url, catalog_count, tier').order('catalog_count', { ascending: false }).order('name').limit(80)).data || []
+    el.innerHTML = list.length
+      ? `<div class="list" style="margin-top:14px">${list.map(r => `<a class="card row" href="#/roaster/${r.id}" style="gap:12px;align-items:center">${r.logo_url ? `<img class="logo-sm" src="${esc(r.logo_url)}" alt="" loading="lazy">` : `<div class="logo-sm bag" style="display:flex;align-items:center;justify-content:center">${icon(I.bag)}</div>`}<div style="min-width:0;flex:1"><b>${esc(r.name)}</b><div class="small muted">${[r.city, r.country].filter(Boolean).map(esc).join(', ') || '&nbsp;'}</div></div><span class="small muted" style="white-space:nowrap">${r.catalog_count ? `${r.catalog_count} coffee${r.catalog_count === 1 ? '' : 's'}` : ''}</span></a>`).join('')}</div>`
+      : `<div class="empty">No roasters match.</div>`
+    return
+  }
+
+  if (q) {
+    // Server-side fuzzy search across the whole catalogue — typos and word order are fine.
+    const hits = await coffees.search(q, 40)
+    el.innerHTML = hits.length ? `<div class="list" style="margin-top:14px">${hits.map(row).join('')}</div>` : `<div class="empty">Nothing matches. Scan the bag to add it.</div>`
+    return
+  }
   const since = new Date(Date.now() - 7 * 86400000).toISOString()
-  const [{ data: coffees }, { data: stats }, { data: week }] = await Promise.all([
-    c.from('coffees').select('id, roaster, name, origin, roast_level, blend, image_path, tasting_notes, created_at').order('created_at', { ascending: false }).limit(300),
+  const [{ data: recent }, { data: stats }, { data: week }] = await Promise.all([
+    c.from('coffees').select('id, roaster, name, origin, roast_level, blend, image_path, image_url, tasting_notes, created_at').eq('available', true).order('created_at', { ascending: false }).limit(300),
     c.from('coffee_stats').select('*'),
     c.from('brews').select('coffee_id').eq('public', true).gte('created_at', since),
   ])
   const S = Object.fromEntries((stats || []).map(s => [s.coffee_id, s]))
   const weekBy = {}
   for (const b of week || []) if (b.coffee_id) weekBy[b.coffee_id] = (weekBy[b.coffee_id] || 0) + 1
-  const all = (coffees || []).map(x => ({ ...x, image_url: imageUrl(x.image_path), s: S[x.id] || { brews: 0, avg_rating: null }, week: weekBy[x.id] || 0 }))
-
-  if (tab === 'roasters') {
-    const by = {}
-    for (const x of all) if (x.roaster && x.roaster !== 'Unknown roaster') { by[x.roaster] ??= { n: 0, brews: 0 }; by[x.roaster].n++; by[x.roaster].brews += x.s.brews }
-    let list = Object.entries(by).sort((a, b) => b[1].brews - a[1].brews || b[1].n - a[1].n)
-    if (q) list = list.filter(([r]) => r.toLowerCase().includes(q))
-    el.innerHTML = list.length
-      ? `<div class="list" style="margin-top:14px">${list.slice(0, 60).map(([r, v]) => `<a class="card row between" href="#/discover?roaster=${encodeURIComponent(r)}"><b>${esc(r)}</b><span class="small muted">${v.n} coffee${v.n === 1 ? '' : 's'}${v.brews ? ` · ${v.brews} brew${v.brews === 1 ? '' : 's'}` : ''}</span></a>`).join('')}</div>`
-      : `<div class="empty">No roasters match.</div>`
-    return
-  }
+  const all = (recent || []).map(x => ({ ...x, image_url: pic(x), s: S[x.id] || { brews: 0, avg_rating: null }, week: weekBy[x.id] || 0 }))
 
   // Coffees: one list. Brewed this week floats up, then rating, then newest.
-  let list = q ? all.filter(x => [x.roaster, x.name, x.origin, x.tasting_notes].some(v => v && v.toLowerCase().includes(q))) : all
-  list = [...list].sort((a, b) => (b.week - a.week) || ((b.s.avg_rating || 0) - (a.s.avg_rating || 0)) || (b.s.brews - a.s.brews) || (a.created_at < b.created_at ? 1 : -1))
-  const row = x => `<a class="card row" href="#/coffee/${x.id}" style="min-width:0">${bagImg(x)}<div style="min-width:0;flex:1"><div class="roaster">${esc(x.roaster !== 'Unknown roaster' ? x.roaster : '')}</div><b>${esc(x.name)}</b><div class="small muted">${[x.blend ? 'Blend' : x.origin, x.roast_level ? roastWord(x.roast_level) : null].filter(Boolean).map(esc).join(' · ')}</div></div>${x.s.brews ? `<div style="text-align:right" class="small"><b class="num">${x.s.avg_rating ?? '—'}</b><div class="muted">${x.week ? `${x.week} this week` : `${x.s.brews} brew${x.s.brews === 1 ? '' : 's'}`}</div></div>` : ''}</a>`
+  const list = [...all].sort((a, b) => (b.week - a.week) || ((b.s.avg_rating || 0) - (a.s.avg_rating || 0)) || (b.s.brews - a.s.brews) || ((b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)) || (a.created_at < b.created_at ? 1 : -1))
   el.innerHTML = list.length ? `<div class="list" style="margin-top:14px">${list.slice(0, 40).map(row).join('')}</div>` : `<div class="empty">${q ? 'Nothing matches. Scan the bag to add it.' : 'No coffees yet — scan the first bag.'}</div>`
 }

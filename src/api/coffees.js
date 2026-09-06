@@ -1,8 +1,10 @@
 import { supa, fn, uid } from '../supa.js'
 import { SB_URL } from '../config.js'
 
+// A photo someone took of the bag wins over the shop's product image.
+export const pic = c => c?.image_path ? imageUrl(c.image_path) : (c?.image_url || null)
 export const imageUrl = path => path ? (path.startsWith('http') ? path : `${SB_URL}/storage/v1/object/public/brew-photos/${path}`) : null
-const withImg = c => c ? { ...c, image_url: imageUrl(c.image_path) } : c
+const withImg = c => c ? { ...c, image_url: pic(c) } : c
 
 export async function get(id) {
   const c = await supa()
@@ -11,17 +13,15 @@ export async function get(id) {
 }
 export async function search(q, limit = 12) {
   const c = await supa()
-  const words = q.replace(/[%_,]/g, ' ').split(/\s+/).filter(w => w.length > 1)
-  if (!words.length) return []
-  // every word must appear somewhere in roaster + name + origin + notes, so "starbucks pike" finds Pike Place
-  let qb = c.from('coffees').select('id, roaster, name, origin, process, roast_level, blend, decaf, image_path, source')
-  for (const w of words) qb = qb.or(`name.ilike.%${w}%,roaster.ilike.%${w}%,origin.ilike.%${w}%,tasting_notes.ilike.%${w}%`)
-  const { data } = await qb.order('updated_at', { ascending: false }).limit(limit)
+  const clean = q.replace(/[%_,]/g, ' ').trim()
+  if (clean.length < 2) return []
+  // Fuzzy, server-side: typos and word order don't matter ("blak white strawbery" still finds it).
+  const { data } = await c.rpc('search_coffees', { q: clean, lim: limit })
   return (data || []).map(withImg)
 }
 export async function recent(limit = 8) {
   const c = await supa()
-  const { data } = await c.from('coffees').select('id, roaster, name, origin, process, roast_level, blend, decaf, image_path, created_at').order('created_at', { ascending: false }).limit(limit)
+  const { data } = await c.from('coffees').select('id, roaster, name, origin, process, roast_level, blend, decaf, image_path, image_url, created_at').order('created_at', { ascending: false }).limit(limit)
   return (data || []).map(withImg)
 }
 export async function stats(id) {
@@ -62,7 +62,23 @@ export async function retailor(coffeeId, method, roast) {
 export async function recommend(body) { return fn('recommend', body) }
 export async function lookup(query) { const out = await fn('lookup-coffee', { query }); return { ...out, coffee: withImg(out.coffee) } }
 export async function roasters(q, limit = 6) {
-  const c = await supa(); const like = `%${q.replace(/[%_]/g, '')}%`
-  const { data } = await c.from('roasters').select('name, city, country, tier, house_style').ilike('name', like).limit(limit)
+  const c = await supa()
+  const { data } = await c.rpc('search_roasters', { q: q.trim(), lim: limit })
   return data || []
+}
+// The roaster's current menu, with photos, from their own shop (synced at most daily; no AI).
+export async function catalog({ roaster_id, roaster }) {
+  const data = await fn('roaster-catalog', roaster_id ? { roaster_id } : { roaster })
+  if (data.error === 'unknown_roaster') throw new Error('unknown_roaster')
+  return { ...data, coffees: (data.coffees || []).map(withImg) }
+}
+export async function byRoaster(name, limit = 60) {
+  const c = await supa()
+  const { data } = await c.from('coffees').select('id, roaster, name, origin, process, roast_level, blend, decaf, image_path, image_url, product_url, price, currency').ilike('roaster', name).eq('available', true).order('name').limit(limit)
+  return (data || []).map(withImg)
+}
+export async function roasterByName(name) {
+  const c = await supa()
+  const { data } = await c.from('roasters').select('id, name, city, country, website, tier, house_style, logo_url, catalog_count, catalog_synced_at').ilike('name', name).maybeSingle()
+  return data
 }

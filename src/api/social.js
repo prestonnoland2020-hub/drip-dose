@@ -1,9 +1,9 @@
 import { supa, uid } from '../supa.js'
-import { imageUrl } from './coffees.js'
+import { imageUrl, pic } from './coffees.js'
 
-const SEL = 'id, user_id, coffee_id, method, dose_g, water_g, ratio, temp_c, grind_label, grind_setting, total_seconds, rating, notes, photo_path, created_at, coffees(id, roaster, name, roast_level, process, origin, image_path)'
+const SEL = 'id, user_id, coffee_id, method, dose_g, water_g, ratio, temp_c, grind_label, grind_setting, total_seconds, rating, notes, photo_path, created_at, coffees(id, roaster, name, roast_level, process, origin, image_path, image_url)'
 const shape = (b, people, social, mine) => ({ ...b, photo_url: imageUrl(b.photo_path),
-  coffees: b.coffees ? { ...b.coffees, image_url: imageUrl(b.coffees.image_path) } : null,
+  coffees: b.coffees ? { ...b.coffees, image_url: pic(b.coffees) } : null,
   person: people[b.user_id] || null, likes: social[b.id]?.likes ?? 0, comments: social[b.id]?.comments ?? 0,
   liked: mine.likes.has(b.id), saved: mine.saved.has(b.id) })
 

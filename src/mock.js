@@ -17,7 +17,7 @@ const T = {
   ],
   library: [{ user_id: ME, coffee_id: C1, status: 'drinking', added_at: ago(40), roast_date: new Date(now - 12 * 86400000).toISOString().slice(0, 10) }, { user_id: ME, coffee_id: C2, status: 'want', added_at: ago(100) }],
   follows: [{ follower_id: ME, target_type: 'user', target_id: AL }], brew_likes: [{ brew_id: B1, user_id: AL }], brew_comments: [{ id: 'c1', brew_id: B1, user_id: AL, body: 'Trying this tomorrow.', created_at: ago(3) }], saved_recipes: [{ user_id: ME, brew_id: B3 }],
-  brew_reference: [], roasters: [],
+  brew_reference: [], roasters: [{ id: 'r1', name: 'Black & White Coffee Roasters', city: 'Raleigh', country: 'USA', website: 'blackwhiteroasters.com', logo_url: null, catalog_count: 2 }, { id: 'r2', name: 'Onyx Coffee Lab', city: 'Rogers', country: 'USA', website: 'onyxcoffeelab.com', logo_url: null, catalog_count: 1 }],
   grinders: [{ id: 'oxo-brew-conical', brand: 'OXO', model: 'Brew Conical Burr', aliases: ['OXO conical'], kind: 'electric', scale: 'numbers', setting_min: 1, setting_max: 15, step: 1, note: '1 is finest.', dial: '15 numbered settings, 1 is finest. The ring is marked Fine → Medium → Coarse with no brew-method labels. Pour-over usually 7–10.', verified: true }, { id: 'baratza-encore', brand: 'Baratza', model: 'Encore', aliases: [], kind: 'electric', scale: 'numbers', setting_min: 1, setting_max: 40, step: 1, note: '' }],
 }
 T.coffee_stats = [{ coffee_id: C1, brews: 2, avg_rating: 8.8, brewers: 1, last_brewed: ago(5) }, { coffee_id: C2, brews: 1, avg_rating: 7.9, brewers: 1, last_brewed: ago(9) }]
@@ -29,7 +29,7 @@ function q(table) {
   let rows = [...(T[table] || [])], filters = [], order = null, lim = null, one = false, single = false, count = false, sel = '*'
   const api = {
     select(s = '*', o = {}) { sel = s; count = !!o.count; return api },
-    eq(k, v) { filters.push(r => r[k] === v); return api }, not(k, op, v) { filters.push(r => op === 'is' && v === null ? r[k] != null : true); return api },
+    eq(k, v) { filters.push(r => r[k] === v); return api }, ilike(k, v) { const t = String(v).replace(/%/g, '').toLowerCase(); filters.push(r => String(r[k] || '').toLowerCase().includes(t)); return api }, not(k, op, v) { filters.push(r => op === 'is' && v === null ? r[k] != null : true); return api },
     gte(k, v) { filters.push(r => r[k] >= v); return api }, in(k, vs) { filters.push(r => vs.includes(r[k])); return api },
     or(expr) { const like = expr.match(/ilike\.%(.*?)%/)?.[1]?.toLowerCase(); filters.push(r => !like || ['name', 'roaster', 'origin'].some(k => r[k]?.toLowerCase().includes(like))); return api },
     match(o) { for (const k in o) filters.push(r => r[k] === o[k]); return api },
@@ -53,6 +53,7 @@ function q(table) {
 export function mockClient() {
   const session = { user: { id: ME, email: 'preston@example.com' }, access_token: 'mock' }
   return { from: q,
+    rpc: async (name, args) => { const ql = String(args?.q || '').toLowerCase(); if (name === 'search_coffees') return { data: T.coffees.filter(c => [c.name, c.roaster].some(v => v?.toLowerCase().includes(ql.split(' ')[0]))) }; if (name === 'search_roasters') return { data: T.roasters.filter(r => r.name.toLowerCase().includes(ql)) }; return { data: [] } },
     auth: { getSession: async () => ({ data: { session } }), onAuthStateChange() {}, signOut: async () => {}, signInWithOAuth: async () => ({}), signInWithOtp: async () => ({}) },
     storage: { from: () => ({ upload: async () => ({ error: null }) }) } }
 }
@@ -66,6 +67,7 @@ export async function mockFn(name, body) {
       confidence: 'high', changed: [], sources: [{ kind: 'label', text: 'What the bag says (light roast)' }, { kind: 'reference', text: 'Hario V60 published ranges — SCA brewing guidance' }, { kind: 'community', text: '2 community brews of this coffee on V60' }, { kind: 'you', text: 'Your last brew of this (9.4/10)' }],
       community: { brews: 2, avg_rating: 8.8, recommend_pct: 100, common_ratio: 16, common_temp: 96, common_grind: 'Medium-fine', avg_seconds: 176 }, basis: 'Hario V60 published ranges, set for light roast' }
   }
+  if (name === 'roaster-catalog') return { roaster: T.roasters[0], coffees: T.coffees, synced: true }
   if (name === 'scan-bag') return { coffee: T.coffees[0], recipe: {}, sources: [], cache_hit: true, scans_used: 3, scan_limit: 5 }
   if (name === 'identify-gear') return { kind: 'grinder', brand: 'OXO', model: 'Brew Conical Burr', confidence: 0.9, grinder: T.grinders[0], candidates: T.grinders, method: null }
   if (name === 'barista') return { answer: 'Your last Strawberry was 20 g to 320 g at 96 °C (205 °F) and you rated it 9.4 — I would not touch it. If the next cup reads sharper, go one click finer and leave everything else alone.', brews_used: 2 }

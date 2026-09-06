@@ -1,10 +1,10 @@
 import { supa, uid } from '../supa.js'
-import { imageUrl } from './coffees.js'
+import { imageUrl, pic } from './coffees.js'
 
 export async function mine() {
   const c = await supa(); const me = uid(); if (!me) return []
-  const { data } = await c.from('library').select('*, coffees(id, roaster, name, origin, process, roast_level, blend, decaf, image_path, tasting_notes)').eq('user_id', me).order('added_at', { ascending: false })
-  const rows = (data || []).map(r => ({ ...r, coffees: r.coffees ? { ...r.coffees, image_url: imageUrl(r.coffees.image_path) } : null }))
+  const { data } = await c.from('library').select('*, coffees(id, roaster, name, origin, process, roast_level, blend, decaf, image_path, image_url, tasting_notes)').eq('user_id', me).order('added_at', { ascending: false })
+  const rows = (data || []).map(r => ({ ...r, coffees: r.coffees ? { ...r.coffees, image_url: pic(r.coffees) } : null }))
   // personal stats per coffee
   const { data: brews } = await c.from('brews').select('coffee_id, rating, created_at, ratio, temp_c, method').eq('user_id', me)
   const by = {}

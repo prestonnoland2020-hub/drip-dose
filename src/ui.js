@@ -44,7 +44,7 @@ export function mount(html) {
 }
 export function top(title, { back = null, right = '' } = {}) {
   return `<div class="top">${back != null
-    ? `<a class="back" href="${esc(back)}">${icon(I.back)} Back</a>`
+    ? `<a class="back" href="${esc(back)}" data-back="1">${icon(I.back)} Back</a>`
     : `<a class="brand" href="#/home">${LOGO} POR</a>`}${right}</div>${title ? `<h1>${title}</h1>` : ''}`
 }
 export function eyebrow(n, text) { return `<div class="eyebrow"><b>${n}</b>${esc(text)}</div>` }
