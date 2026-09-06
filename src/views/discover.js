@@ -4,7 +4,8 @@
 //   Roasters — who's roasting, tap one to see their coffees
 import { mount, top, esc, icon, I, $, bagImg, roastWord } from '../ui.js'
 import { supa } from '../supa.js'
-import { imageUrl } from '../api/coffees.js'
+import * as coffees from '../api/coffees.js'
+import { pic } from '../api/coffees.js'
 import * as social from '../api/social.js'
 import { postCard, bindPosts } from './shared.js'
 
