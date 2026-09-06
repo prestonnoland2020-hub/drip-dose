@@ -253,3 +253,12 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .tile-img img{width:100%;height:100%;object-fit:cover}
 .tile-img svg{width:28px;height:28px}
 .logo-sm{width:40px;height:40px;border-radius:10px;object-fit:cover;background:var(--bg-3);border:1px solid var(--line);flex:none}
+
+/* floating Barista button + chat */
+.fab{position:fixed;right:16px;bottom:calc(var(--tabs-h) + env(safe-area-inset-bottom) + 14px);z-index:20;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px 0 12px;border-radius:999px;background:var(--ink);color:var(--bg);font-weight:600;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.fab svg{width:20px;height:20px}
+.fab[hidden]{display:none}
+.chat{max-height:48dvh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:15px;line-height:1.4;white-space:pre-wrap}
+.msg.me{align-self:flex-end;background:var(--ink);color:var(--bg);border-bottom-right-radius:6px}
+.msg.them{align-self:flex-start;background:var(--bg-3);border:1px solid var(--line);border-bottom-left-radius:6px}

@@ -3,6 +3,7 @@ import { mount, top, esc, icon, I, $, bagImg, coffeeTitle, coffeeMeta } from '..
 import { state, set } from '../store.js'
 import { byId } from '../methods.js'
 import { methodGrid, doseStepper, bindStepper } from './shared.js'
+import { open as askBarista } from '../barista.js'
 import * as setup from '../api/setup.js'
 import { uid } from '../supa.js'
 import { sheet, closeSheet } from '../ui.js'
@@ -23,7 +24,8 @@ export async function render() {
     <div class="eyebrow"><b>04</b>Grinder</div>
     <button class="card row between" id="gear" style="margin:8px 0 26px;width:100%;text-align:left;padding:12px 14px"><div><b>${g ? esc(g.name) : uid() ? 'Add your grinder' : 'Sign in to add your grinder'}</b><div class="small muted">${g ? 'You get a setting, not a vague grind size' : 'POR turns the recipe into a number on your dial'}</div></div>${icon(I.chev)}</button>
     <a class="btn primary big" href="#/recipe" id="go">${icon(I.spark)} ${c ? 'Get my recipe' : 'Build a recipe'}</a>
-    <div class="row" style="justify-content:center;gap:22px;margin-top:16px"><a href="#/calc" class="small muted">Calculators</a><a href="#/barista" class="small muted">Ask the barista</a></div>`)
+    <div class="row" style="justify-content:center;gap:22px;margin-top:16px"><a href="#/calc" class="small muted">Calculators</a><button id="ask" class="small muted" style="background:none;padding:0">Ask the barista</button></div>`)
+  $('ask').onclick = askBarista
   $('methods').querySelectorAll('[data-method]').forEach(b => b.onclick = () => {
     set({ method: b.dataset.method, rec: null }); $('methods').innerHTML = methodGrid(state.method); bindMethods()
   })

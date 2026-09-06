@@ -2,6 +2,7 @@
 import { initAuth, onAuth, session } from './supa.js'
 import { $, mount, toast } from './ui.js'
 import { state } from './store.js'
+import { mountFab, showFab } from './barista.js'
 
 // How many in-app navigations we've made, so Back knows whether history has anywhere to go.
 let depth = 0
@@ -47,6 +48,7 @@ async function route() {
   if (current?.destroy) { try { current.destroy() } catch {} }
   document.querySelectorAll('#tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === TAB_OF[name] ? 'page' : 'false'))
   $('tabs').classList.toggle('hide', name === 'timer' || name === 'signin')
+  mountFab(); showFab(!['timer', 'signin', 'setup', 'add', 'barista'].includes(name))
   $('sheet').hidden = true
   try {
     const mod = await loader()
